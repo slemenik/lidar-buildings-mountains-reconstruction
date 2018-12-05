@@ -1,2 +1,1 @@
-# Reconstruction of buildings and mountainous areas in LiDAR point
-clouds
+# Reconstruction of buildings and mountainous areas in LiDAR point clouds
