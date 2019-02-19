@@ -2,6 +2,7 @@ package com.slemenik.lidar.reconstruction.main;
 
 import com.github.mreutegg.laszip4j.LASPoint;
 import com.github.mreutegg.laszip4j.LASReader;
+import com.github.mreutegg.laszip4j.laszip.LASpoint;
 import org.geotools.data.*;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.shapefile.ShapefileDataStore;
@@ -28,10 +29,7 @@ import org.opengis.filter.FilterFactory;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class Main {
@@ -40,8 +38,13 @@ public class Main {
 //    shp();
 
         System.out.println("start");
-write();
 
+        Coordinate a = new Coordinate(1.0,1.0);
+        Coordinate b = new Coordinate(1.0,2.0);
+//        System.out.println(a.equals2D(b, 1.0));
+
+write();
+//las();
     }
 
     public static void write () {
@@ -81,33 +84,48 @@ write();
             FeatureCollection oldFeatureCollection = oldFeatureSource.getFeatures(query);
 
 
-            System.out.println(oldFeatureSource.getFeatures(query).size());
-            System.out.println(oldFeatureSource.getFeatures().size());
+
+//            System.out.println(oldFeatureSource.getFeatures(query).size());
+//            System.out.println(oldFeatureSource.getFeatures().size());
 
             List<SimpleFeature> features = new ArrayList<>();
 
             FeatureIterator iterator = oldFeatureCollection.features();
             int i = 0;
-            while (iterator.hasNext() && i++ < 20) {
+            while (iterator.hasNext() && i++ < 2) {
                 Feature feature = iterator.next();
 
                 Property geom = feature.getProperty("the_geom");
 //                System.out.println(feature.getDefaultGeometryProperty().getDescriptor().getCoordinateReferenceSystem());
-//                System.out.println(geom);
+//                System.out.println(feature.getDefaultGeometryProperty().getValue());
+//                System.out.println(feature.getDefaultGeometryProperty().getBounds());
+//                System.out.println(feature.getBounds());
+//                System.out.println(feature.getType());
 //                System.out.println(geom.getName());
 //                System.out.println(geom.getType());
 //                System.out.println(geom.getUserData());
 //                System.out.println(geom.getDescriptor());
+                System.out.println("Feature"+i);
                 MultiPolygon a = (MultiPolygon) geom.getValue();
-//                System.out.println(a);
+//                System.out.println(a.getBoundary());
+
+//                System.out.println(a.);
                 for (Coordinate coordinate : a.getCoordinates()) {
-//                    System.out.println(coordinate);
+
+                    System.out.println("iščem ujemanje s koodrinato: " + coordinate);
+                    findPointsWithXY(coordinate, 1.0);
+//                    coordinate.equals2D()
                 }
+                System.out.println();
 //                (geom.);
 
 
                 features.add((SimpleFeature)feature);
+
+                System.out.println("-------------------------------------------");
             }
+
+            if (true) return;
 
             SimpleFeatureType TYPE = (SimpleFeatureType) oldFeatureSource.getSchema();
 
@@ -164,14 +182,86 @@ write();
         System.out.println();
     }
 
+    public static void createPoints(double minZ, double maxZ, double x, double y) {
+//        LASPoint p = LASPgetX();
+    }
+
+    public static void findPointsWithXY(Coordinate c, double allowedDistance ) {
+        LASReader reader = new LASReader(new File("./data/462_100_grad.laz"));
+
+        double maxVisina = 0.0;
+        double minVisina = Double.MAX_VALUE;
+
+        PriorityQueue queue = new PriorityQueue<Coordinate>((o1, o2) -> {
+            double d1 = o1.distance(c);
+            double d2 = o2.distance(c);
+
+            return d1 > d2 ? 1 : -1;
+        });
+
+        for (LASPoint p : reader.getPoints()) {
+            double lasX = p.getX()/100.0;
+            double lasY = p.getY()/100.0;
+            double lasZ = p.getZ()/100.0;
+
+//            int i = 123456789;
+//            double a = lasX;
+//            System.out.println(lasX/100);
+//            System.out.println(lasX);
+//            System.out.println((a));
+//            System.out.println((c.x));
+
+            Coordinate c1 = new Coordinate(lasX, lasY);
+//            System.out.println(c1);
+//            System.out.println(c);
+
+            if (c.equals2D(c1, allowedDistance)) {
+                if (lasZ > maxVisina) maxVisina = lasZ;
+                if (lasZ < minVisina) minVisina = lasZ;
+            }
+//                System.out.print("ujema se točka: ");
+//                System.out.print(lasX + ", ");
+//                System.out.print(lasY + "\n");
+
+//            }
+                queue.add(c1);
+
+
+
+//            if (x + allowedDistance)
+
+        }
+        //najdi najbližjo
+        System.out.println("najbližja: " + queue.peek());
+        System.out.println("maxVisina: " + maxVisina);
+        System.out.println("minVisina: " + minVisina);
+//        Collections.sort(bestCandidates, new Comparator<Coordinate>() {
+//
+//            @Override
+//            public int compare(Coordinate fruit1, Coordinate fruit2) {
+//
+//
+//
+//                //descending order
+//                //return fruitName2.compareTo(fruitName1);
+//            }
+//        });
+
+    }
+
     public static void las() {
         LASReader reader = new LASReader(new File("./data/462_100_grad.laz"));
         for (LASPoint p : reader.getPoints()) {
             // read something from point
             System.out.println(p.getX());
-            System.out.println(p.getY());
-            System.out.println(p.getZ());
+            System.out.println(p.getX()/100.0);
+//            System.out.println(p.getY());
+//            System.out.println(p.getZ());
             p.getClassification();
+            if (
+            p.getX() <= 462258 /*&& p.getX()-2 <= 462258*/) {
+                System.out.println(p.getY());
+            }
         }
 
         Iterable<LASPoint> a = reader.getPoints();
