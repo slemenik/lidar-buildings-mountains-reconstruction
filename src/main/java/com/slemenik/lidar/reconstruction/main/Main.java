@@ -204,12 +204,7 @@ write();
             double lasY = p.getY()/100.0;
             double lasZ = p.getZ()/100.0;
 
-//            int i = 123456789;
-//            double a = lasX;
-//            System.out.println(lasX/100);
-//            System.out.println(lasX);
-//            System.out.println((a));
-//            System.out.println((c.x));
+
 
             Coordinate c1 = new Coordinate(lasX, lasY);
 //            System.out.println(c1);
