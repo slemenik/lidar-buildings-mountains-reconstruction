@@ -2,7 +2,6 @@ package com.slemenik.lidar.reconstruction.main;
 
 import com.github.mreutegg.laszip4j.LASPoint;
 import com.github.mreutegg.laszip4j.LASReader;
-import com.github.mreutegg.laszip4j.laszip.LASpoint;
 import org.geotools.data.*;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.shapefile.ShapefileDataStore;
@@ -13,17 +12,14 @@ import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
-import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
-import org.geotools.feature.simple.SimpleFeatureTypeImpl;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.math.Vector2D;
 import org.opengis.feature.Feature;
-import org.opengis.feature.GeometryAttribute;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
-import org.opengis.feature.type.PropertyDescriptor;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
 
@@ -31,25 +27,122 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.*;
 
-
 public class Main {
 
+    private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 1.0;
+    private static final double CREATED_POINTS_SPACING = 0.2;
+
+    private static int count = 0;
+
     public static void main(String[] args) {
-//    shp();
-
         System.out.println("start");
-
-        Coordinate a = new Coordinate(1.0,1.0);
-        Coordinate b = new Coordinate(1.0,2.0);
-//        System.out.println(a.equals2D(b, 1.0));
-
-write();
-//las();
+        write();
+        System.out.println();
+        System.out.println("end");
     }
 
     public static void write () {
         try {
 
+            FeatureSource oldFeatureSource = getFeatureSource();
+
+            String typeName = "BU_STAVBE_P";
+
+            FeatureType schema = oldFeatureSource.getSchema();
+            String name = schema.getGeometryDescriptor().getLocalName();
+
+            System.out.println(name);
+            System.out.println();
+            String srs = oldFeatureSource.getBounds().getCoordinateReferenceSystem().toString();
+
+            FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
+            Filter filter = ff.bbox("the_geom", 462000.0, 100000.0, 463000, 101000, srs);
+//            ff.property( "the_geom"), ff.literal( 12 )
+//            Filter filter = CQL.toFilter(text.getText());
+
+            Query query = new Query(typeName, filter, new String[] {name});
+            FeatureCollection oldFeatureCollection = oldFeatureSource.getFeatures(query);
+
+//            System.out.println(oldFeatureSource.getFeatures(query).size());
+//            System.out.println(oldFeatureSource.getFeatures().size());
+
+            List<SimpleFeature> features = new ArrayList<>();
+
+            FeatureIterator iterator = oldFeatureCollection.features();
+//            System.out.println(collection.size());
+            int index = 0;
+            while (iterator.hasNext() && index++ < 2) {
+                Feature feature = iterator.next();
+
+                Property geom = feature.getProperty("the_geom");
+
+//                GeometryAttribute sourceGeometry = feature.getDefaultGeometryProperty();
+//                System.out.println(feature.getType().getName().toString());
+//                System.out.println(feature.getIdentifier().getID());
+//                System.out.println(feature.getName());
+//                System.out.println(feature.getName());
+//                System.out.println(sourceGeometry.getValue());
+//                System.out.println(feature.getProperty("VISINA"));
+//                for (PropertyDescriptor a : feature.getType().getDescriptors()) {
+//                    System.out.println(a.getName());
+//                    System.out.println(a.getType());
+//                    System.out.println(a.getUserData());
+//                    System.out.println(feature.getName());
+//
+//                }
+//                System.out.println(feature.getType().getName().toString());
+//                System.out.println(feature.getBounds().getMaxY());
+//
+//                System.out.println(feature.getDefaultGeometryProperty().getDescriptor().getCoordinateReferenceSystem());
+//                System.out.println(feature.getDefaultGeometryProperty().getValue());
+//                System.out.println(feature.getDefaultGeometryProperty().getBounds());
+//                System.out.println(feature.getBounds());
+//                System.out.println(feature.getType());
+//                System.out.println(geom.getName());
+//                System.out.println(geom.getType());
+//                System.out.println(geom.getUserData());
+//                System.out.println(geom.getDescriptor());
+
+                System.out.println("Stavba"+index);
+                MultiPolygon buildingPolygon = (MultiPolygon) geom.getValue();
+                Coordinate[] buildingVertices = buildingPolygon.getCoordinates();
+
+                for (int i = 0; i < buildingVertices.length - 1; i++ ) { //for each until the one before last
+                    Coordinate vertexFrom =  buildingVertices[i];
+                    Coordinate vertexTo = buildingVertices[i+1];
+                    createWall(vertexFrom, vertexTo);
+                }
+                System.out.println();
+
+                features.add((SimpleFeature)feature);
+
+                System.out.println("-------------------------------------------");
+            }
+            iterator.close();
+
+//            writeShpFile( oldFeatureSource,  features, oldFeatureCollection);
+
+
+        } catch (Exception e){
+            System.out.println(e);
+        }
+        System.out.println();
+    }
+
+    //returns the Coordinate that lies on a line between "start" and "end" and is a "distance" away from start
+    public static Coordinate getNextCoordinate(Coordinate start, Coordinate end, double distance) {
+        // https://math.stackexchange.com/questions/175896
+        Vector2D v0 = new Vector2D(start);
+        Vector2D v1 = new Vector2D(end);
+        Vector2D v = v1.subtract(v0);
+
+        Vector2D u = v.normalize();
+        Vector2D newPoint = v0.add(u.multiply(distance));
+        return new Coordinate(newPoint.getX(), newPoint.getY());
+    }
+
+    public static void writeShpFile(FeatureSource oldFeatureSource, List<SimpleFeature> features, FeatureCollection oldFeatureCollection) {
+        try {
             /*
              * Get an output file name and create the new shapefile
              */
@@ -64,69 +157,6 @@ write();
             ShapefileDataStore newDataStore =
                     (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
 
-            FeatureSource oldFeatureSource = shp();
-
-            String typeName2 = "BU_STAVBE_P";
-
-            FeatureType schema = oldFeatureSource.getSchema();
-            String name = schema.getGeometryDescriptor().getLocalName();
-
-            System.out.println(name);
-            System.out.println();
-            String srs = oldFeatureSource.getBounds().getCoordinateReferenceSystem().toString();
-
-            FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
-            Filter filter = ff.bbox("the_geom", 462000.0, 100000.0, 463000, 101000, srs);
-//            ff.property( "the_geom"), ff.literal( 12 )
-//            Filter filter = CQL.toFilter(text.getText());
-
-            Query query = new Query(typeName2, filter, new String[] {name});
-            FeatureCollection oldFeatureCollection = oldFeatureSource.getFeatures(query);
-
-
-
-//            System.out.println(oldFeatureSource.getFeatures(query).size());
-//            System.out.println(oldFeatureSource.getFeatures().size());
-
-            List<SimpleFeature> features = new ArrayList<>();
-
-            FeatureIterator iterator = oldFeatureCollection.features();
-            int i = 0;
-            while (iterator.hasNext() && i++ < 2) {
-                Feature feature = iterator.next();
-
-                Property geom = feature.getProperty("the_geom");
-//                System.out.println(feature.getDefaultGeometryProperty().getDescriptor().getCoordinateReferenceSystem());
-//                System.out.println(feature.getDefaultGeometryProperty().getValue());
-//                System.out.println(feature.getDefaultGeometryProperty().getBounds());
-//                System.out.println(feature.getBounds());
-//                System.out.println(feature.getType());
-//                System.out.println(geom.getName());
-//                System.out.println(geom.getType());
-//                System.out.println(geom.getUserData());
-//                System.out.println(geom.getDescriptor());
-                System.out.println("Feature"+i);
-                MultiPolygon a = (MultiPolygon) geom.getValue();
-//                System.out.println(a.getBoundary());
-
-//                System.out.println(a.);
-                for (Coordinate coordinate : a.getCoordinates()) {
-
-                    System.out.println("iščem ujemanje s koodrinato: " + coordinate);
-                    findPointsWithXY(coordinate, 1.0);
-//                    coordinate.equals2D()
-                }
-                System.out.println();
-//                (geom.);
-
-
-                features.add((SimpleFeature)feature);
-
-                System.out.println("-------------------------------------------");
-            }
-
-            if (true) return;
-
             SimpleFeatureType TYPE = (SimpleFeatureType) oldFeatureSource.getSchema();
 
             /*
@@ -140,7 +170,7 @@ write();
             Transaction transaction = new DefaultTransaction("create");
 
             String typeName = newDataStore.getTypeNames()[0];
-            System.out.println("typeName: "  + typeName);
+            System.out.println("typeName: " + typeName);
             SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
             SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
             /*
@@ -177,92 +207,73 @@ write();
                 System.out.println(typeName + " does not support read/write access");
                 System.exit(1);
             }
+        } catch (Exception e) {System.out.println(e);}
+    }
 
-        } catch (Exception e){System.out.println(e);}
-        System.out.println();
+    public static void createWall(Coordinate startCoordinate, Coordinate endCoordinate) {
+        System.out.println("Ustvari zid od " + startCoordinate + " do " + endCoordinate);
+        Coordinate currentCoordinate = startCoordinate.copy();
+        double wallLength = startCoordinate.distance(endCoordinate);
+        while (startCoordinate.distance(currentCoordinate) <= wallLength) {
+            createHeightLine(currentCoordinate);
+            currentCoordinate = getNextCoordinate(currentCoordinate, endCoordinate, CREATED_POINTS_SPACING);
+        }
+        System.out.println("Zid ustvarjen.");
     }
 
     public static void createPoints(double minZ, double maxZ, double x, double y) {
-//        LASPoint p = LASPgetX();
+//        System.out.println("Ustvari točke od višine " + minZ + " do " + maxZ);
+        double currentZ = minZ + CREATED_POINTS_SPACING; //we set first Z above minZ, avoiding duplicates points on same level
+        while (currentZ < maxZ) {
+            Coordinate pointToCreate = new Coordinate(x, y, currentZ);
+//            Main.count++;
+//            System.out.println("št. " + Main.count);
+//            JNI.writePoint(pointToCreate); // todo
+//            System.out.println(pointToCreate);
+//            System.out.println("Točka kao ustvarjen: " + pointToCreate);
+            currentZ += CREATED_POINTS_SPACING;
+        }
     }
 
-    public static void findPointsWithXY(Coordinate c, double allowedDistance ) {
+    public static Iterable<LASPoint> getLasPoints() { //todo; use Native Library
         LASReader reader = new LASReader(new File("./data/462_100_grad.laz"));
+        return reader.getPoints();
+    }
 
-        double maxVisina = 0.0;
-        double minVisina = Double.MAX_VALUE;
+    public static void createHeightLine(Coordinate c) {
+//        System.out.println("Ustvari točke na koordinati " + c);
+        double maxHeight = 0.0;
+        double minHeight = Double.MAX_VALUE;
 
-        PriorityQueue queue = new PriorityQueue<Coordinate>((o1, o2) -> {
+        PriorityQueue<Coordinate> queue = new PriorityQueue<>((o1, o2) -> {
             double d1 = o1.distance(c);
             double d2 = o2.distance(c);
-
-            return d1 > d2 ? 1 : -1;
+            return Double.compare(d1,d2);
         });
 
-        for (LASPoint p : reader.getPoints()) {
-            double lasX = p.getX()/100.0;
-            double lasY = p.getY()/100.0;
-            double lasZ = p.getZ()/100.0;
-
-
+        for (LASPoint p : getLasPoints()) {
+            double lasX = p.getX() / 100.0;
+            double lasY = p.getY() / 100.0;
+            double lasZ = p.getZ() / 100.0;
 
             Coordinate c1 = new Coordinate(lasX, lasY);
-//            System.out.println(c1);
-//            System.out.println(c);
 
-            if (c.equals2D(c1, allowedDistance)) {
-                if (lasZ > maxVisina) maxVisina = lasZ;
-                if (lasZ < minVisina) minVisina = lasZ;
+            // calculate max and min z coordinate
+            if (c.equals2D(c1, DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD)) {
+                if (lasZ > maxHeight) maxHeight = lasZ;
+                if (lasZ < minHeight) minHeight = lasZ;
             }
-//                System.out.print("ujema se točka: ");
-//                System.out.print(lasX + ", ");
-//                System.out.print(lasY + "\n");
-
-//            }
-                queue.add(c1);
-
-
-
-//            if (x + allowedDistance)
+            queue.add(c1);
 
         }
-        //najdi najbližjo
-        System.out.println("najbližja: " + queue.peek());
-        System.out.println("maxVisina: " + maxVisina);
-        System.out.println("minVisina: " + minVisina);
-//        Collections.sort(bestCandidates, new Comparator<Coordinate>() {
-//
-//            @Override
-//            public int compare(Coordinate fruit1, Coordinate fruit2) {
-//
-//
-//
-//                //descending order
-//                //return fruitName2.compareTo(fruitName1);
-//            }
-//        });
-
+        Coordinate closest = queue.peek();
+        createPoints(minHeight, maxHeight, closest.x, closest.y);
+//        System.out.println("Točke ustvarjene.");
     }
 
-    public static void las() {
-        LASReader reader = new LASReader(new File("./data/462_100_grad.laz"));
-        for (LASPoint p : reader.getPoints()) {
-            // read something from point
-            System.out.println(p.getX());
-            System.out.println(p.getX()/100.0);
-//            System.out.println(p.getY());
-//            System.out.println(p.getZ());
-            p.getClassification();
-            if (
-            p.getX() <= 462258 /*&& p.getX()-2 <= 462258*/) {
-                System.out.println(p.getY());
-            }
-        }
+    //todo - ko iščeš min in max, poglej kaj se zgodi če dobiš premalo točk - samo ena ali celo nič - povečaj toleracno
 
-        Iterable<LASPoint> a = reader.getPoints();
-    }
-
-    public static FeatureSource shp() {
+    public static FeatureSource getFeatureSource() {
         File file = new File("./data/BU_STAVBE_P.shp");
         FeatureSource featureSource = null;
         try {
@@ -276,39 +287,10 @@ write();
             System.out.println("Reading content " + typeName);
 
             featureSource = dataStore.getFeatureSource(typeName);
-//            FeatureCollection collection = featureSource.getFeatures();
 
-
-//            FeatureIterator iterator = collection.features();
-//            System.out.println(collection.size());
-//
-//
-          /*  try {
-                int i = 0;
-                while (iterator.hasNext() && i++ < 20) {
-                    Feature feature = iterator.next();
-                    GeometryAttribute sourceGeometry = feature.getDefaultGeometryProperty();
-//                    System.out.println(feature.getType().getName().toString());
-//                    System.out.println(feature.getIdentifier().getID());
-//                    System.out.println(feature.getName());
-                    System.out.println(feature.getName());
-                    System.out.println(sourceGeometry.getValue());
-                    System.out.println(feature.getProperty("VISINA"));
-//                    for (PropertyDescriptor a : feature.getType().getDescriptors()) {
-//                        System.out.println(a.getName());
-//                        System.out.println(a.getType());
-//                        System.out.println(a.getUserData());
-////                        System.out.println(feature.getName());
-//
-//                    }
-//                    System.out.println(feature.getType().getName().toString());
-//                    System.out.println(feature.getBounds().getMaxY());
-                }
-            } finally {
-                iterator.close();
-            }
-*/
-        } catch (Throwable e) {System.out.println(e);}
+        } catch (Throwable e) {
+            System.out.println(e);
+        }
         return featureSource;
     }
 }
