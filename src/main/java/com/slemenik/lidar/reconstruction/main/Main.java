@@ -2,6 +2,7 @@ package com.slemenik.lidar.reconstruction.main;
 
 import com.github.mreutegg.laszip4j.LASPoint;
 import com.github.mreutegg.laszip4j.LASReader;
+import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import org.geotools.data.*;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.shapefile.ShapefileDataStore;
@@ -30,13 +31,24 @@ import java.util.*;
 public class Main {
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 1.0;
-    private static final double CREATED_POINTS_SPACING = 0.2;
+    private static final double CREATED_POINTS_SPACING = 2.0;//0.2;
+    private static final boolean WRITE_POINTS_INDIVIDUALY = true;
 
     private static int count = 0;
+    private static List<Double[]> points2Insert = new ArrayList<>();
 
     public static void main(String[] args) {
         System.out.println("start");
-        write();
+//        write();
+        int returnValue = JniLibraryHelpers.writePointList();
+        int returnValue2 = JniLibraryHelpers.writePoint(1.0,2.0,3.0);
+        System.out.println(returnValue);
+        System.out.println(returnValue2);
+
+
+        if (!points2Insert.isEmpty()) {
+            JniLibraryHelpers.writePointList((double[][])points2Insert.toArray());
+        }
         System.out.println();
         System.out.println("end");
     }
@@ -225,11 +237,14 @@ public class Main {
 //        System.out.println("Ustvari točke od višine " + minZ + " do " + maxZ);
         double currentZ = minZ + CREATED_POINTS_SPACING; //we set first Z above minZ, avoiding duplicates points on same level
         while (currentZ < maxZ) {
-            Coordinate pointToCreate = new Coordinate(x, y, currentZ);
 //            Main.count++;
-//            System.out.println("št. " + Main.count);
-//            JNI.writePoint(pointToCreate); // todo
-//            System.out.println(pointToCreate);
+            if (WRITE_POINTS_INDIVIDUALY) {
+                JniLibraryHelpers.writePoint(x,y,currentZ);
+            } else {
+                points2Insert.add(new Double[]{x,y,currentZ});
+            }
+
+            System.out.println(new Coordinate(x, y, currentZ));
 //            System.out.println("Točka kao ustvarjen: " + pointToCreate);
             currentZ += CREATED_POINTS_SPACING;
         }
@@ -239,6 +254,8 @@ public class Main {
         LASReader reader = new LASReader(new File("./data/462_100_grad.laz"));
         return reader.getPoints();
     }
+
+
 
     public static void createHeightLine(Coordinate c) {
 //        System.out.println("Ustvari točke na koordinati " + c);
