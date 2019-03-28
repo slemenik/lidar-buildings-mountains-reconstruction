@@ -9,7 +9,8 @@ public class JniLibraryHelpers {
 
       {
 //        System.loadLibrary("cygLasReadWriteApi");
-        System.load("C:/Users/Matej/CLionProjects/LasReadWriteApi/cmake-build-debug/cygLasReadWriteApi.dll");
+//        System.load("C:/Users/Matej/CLionProjects/LasReadWriteApi/cmake-build-debug/cygLasReadWriteApi.dll");
+        System.loadLibrary("Project2");
     }
 
     private native void writeJNIPoint(double x, double y, double z);

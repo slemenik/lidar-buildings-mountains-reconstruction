@@ -41,9 +41,9 @@ public class Main {
         System.out.println("start");
 //        write();
         int returnValue = JniLibraryHelpers.writePointList();
-        int returnValue2 = JniLibraryHelpers.writePoint(1.0,2.0,3.0);
+        //int returnValue2 = JniLibraryHelpers.writePoint(1.0,2.0,3.0);
         System.out.println(returnValue);
-        System.out.println(returnValue2);
+        //System.out.println(returnValue2);
 
 
         if (!points2Insert.isEmpty()) {
@@ -68,7 +68,7 @@ public class Main {
             String srs = oldFeatureSource.getBounds().getCoordinateReferenceSystem().toString();
 
             FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
-            Filter filter = ff.bbox("the_geom", 462000.0, 100000.0, 463000, 101000, srs);
+            Filter filter = ff.bbox("the_geom", 462000.0, 100000.0, 463000, 101000, srs); //dejanske koordinate
 //            ff.property( "the_geom"), ff.literal( 12 )
 //            Filter filter = CQL.toFilter(text.getText());
 
