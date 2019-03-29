@@ -31,23 +31,37 @@ import java.util.*;
 public class Main {
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 1.0;
-    private static final double CREATED_POINTS_SPACING = 2.0;//0.2;
-    private static final boolean WRITE_POINTS_INDIVIDUALY = true;
+    private static final double CREATED_POINTS_SPACING = 0.2;//2.0;//0.2;
+    private static final boolean WRITE_POINTS_INDIVIDUALY = false;
 
     private static int count = 0;
-    private static List<Double[]> points2Insert = new ArrayList<>();
+    private static List<double[]> points2Insert = new ArrayList<>();
 
     public static void main(String[] args) {
         System.out.println("start");
 //        write();
-        int returnValue = JniLibraryHelpers.writePointList();
+//        int returnValue = JniLibraryHelpers.writePointList();
         //int returnValue2 = JniLibraryHelpers.writePoint(1.0,2.0,3.0);
-        System.out.println(returnValue);
+//        System.out.println(returnValue);
         //System.out.println(returnValue2);
 
+        System.out.println("Konec racunanja, zacetek pisanja...");
+
+        double[][] list =  {
+                {1.0,11.0,111.0},
+                {2.0,22.0,222.0},
+                {3.0,33.0,333.0},
+                {4.0,44.0,444.0},
+                {5.0,55.0,555.0}
+        };
+
+        int a = JniLibraryHelpers.writePointList(list);
+        System.out.println(a);
 
         if (!points2Insert.isEmpty()) {
-            JniLibraryHelpers.writePointList((double[][])points2Insert.toArray());
+            double[][] pointListDoubleArray = points2Insert.toArray(new double[][]{});
+            int returnValue = JniLibraryHelpers.writePointList(pointListDoubleArray);
+             System.out.println(returnValue);
         }
         System.out.println();
         System.out.println("end");
@@ -68,7 +82,8 @@ public class Main {
             String srs = oldFeatureSource.getBounds().getCoordinateReferenceSystem().toString();
 
             FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
-            Filter filter = ff.bbox("the_geom", 462000.0, 100000.0, 463000, 101000, srs); //dejanske koordinate
+//            Filter filter = ff.bbox("the_geom", 462000.0, 100000.0, 463000.0, 101000.0, srs); //dejanske koordinate
+            Filter filter = ff.bbox("the_geom", 462258.0, 100584.0, 462452.0, 100696.0, srs); //lj grad
 //            ff.property( "the_geom"), ff.literal( 12 )
 //            Filter filter = CQL.toFilter(text.getText());
 
@@ -83,7 +98,7 @@ public class Main {
             FeatureIterator iterator = oldFeatureCollection.features();
 //            System.out.println(collection.size());
             int index = 0;
-            while (iterator.hasNext() && index++ < 2) {
+            while (iterator.hasNext() && index++ < 2) {//temp
                 Feature feature = iterator.next();
 
                 Property geom = feature.getProperty("the_geom");
@@ -241,17 +256,17 @@ public class Main {
             if (WRITE_POINTS_INDIVIDUALY) {
                 JniLibraryHelpers.writePoint(x,y,currentZ);
             } else {
-                points2Insert.add(new Double[]{x,y,currentZ});
+                points2Insert.add(new double[]{x,y,currentZ});
             }
 
-            System.out.println(new Coordinate(x, y, currentZ));
-//            System.out.println("Točka kao ustvarjen: " + pointToCreate);
+//            System.out.println(new Coordinate(x, y, currentZ));
             currentZ += CREATED_POINTS_SPACING;
         }
     }
 
     public static Iterable<LASPoint> getLasPoints() { //todo; use Native Library
-        LASReader reader = new LASReader(new File("./data/462_100_grad.laz"));
+        LASReader reader = new LASReader(new File("./data/out2.laz"));
+//        LASReader reader = new LASReader(new File("./data/462_100_grad.laz"));
         return reader.getPoints();
     }
 

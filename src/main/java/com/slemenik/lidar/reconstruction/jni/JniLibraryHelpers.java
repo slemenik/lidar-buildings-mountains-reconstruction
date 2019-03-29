@@ -9,12 +9,12 @@ public class JniLibraryHelpers {
 
       {
 //        System.loadLibrary("cygLasReadWriteApi");
-//        System.load("C:/Users/Matej/CLionProjects/LasReadWriteApi/cmake-build-debug/cygLasReadWriteApi.dll");
-        System.loadLibrary("Project2");
+        System.load("C:\\Users\\Matej\\source\\repos\\Project2\\x64\\Debug\\Project2.dll");
+//        System.loadLibrary("Project2");
     }
 
     private native void writeJNIPoint(double x, double y, double z);
-    private native int writeJNIPointList(double[][] pointsArray);
+    private native int writeJNIPointList(double[][] pointsArray, String inputFileName, String outputFileName);
 
     public void printDouble(double d) {
         System.out.println(d);
@@ -41,7 +41,13 @@ public class JniLibraryHelpers {
 
     public static Integer writePointList(double[][] list) {
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
-        return myInstance.writeJNIPointList(list);
+        System.out.println("klic funkcije writeJNIPointList()");
+
+//        System.out.println(" seznam tock je: ");
+//        for (int i = 0; i<list.length;i++) {
+//            System.out.println(new Coordinate(list[i][0],  list[i][1], list[i][2]));
+//        }
+        return myInstance.writeJNIPointList(list,"france.laz","out.laz");
     }
 
 }
