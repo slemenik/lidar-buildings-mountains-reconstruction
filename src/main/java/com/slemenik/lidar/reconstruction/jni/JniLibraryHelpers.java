@@ -55,7 +55,7 @@ public class JniLibraryHelpers {
 
     public static double[] getMinMaxHeight(double x, double y, double threshold, String inputFileName) {
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
-        System.out.println("klic funkcije getMinMaxHeight("+x+", "+ y+")");
+        //System.out.println("klic funkcije getMinMaxHeight("+x+", "+ y+")");
         return myInstance.getJNIMinMaxHeight( x, y, threshold, inputFileName );
     }
 

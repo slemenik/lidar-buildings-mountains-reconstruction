@@ -33,13 +33,14 @@ public class Main {
 
     private static final String INPUT_FILE_NAME = ".\\data\\462_100_grad.laz";
     private static final String OUTPUT_FILE_NAME =".\\data\\out.laz";
-    private static final String TEMP_FILE_NAME = ".\\data\\temp.laz";
+    private static String TEMP_FILE_NAME = ".\\data\\temp.laz";
 
-    private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
-    private static final double CREATED_POINTS_SPACING = 0.2;//2.0;//0.2;
+    private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 1; //manjše je bolj natančno za detajle, ne prekrije celega
+    private static final double CREATED_POINTS_SPACING = 0.5;//2.0;//0.2;
     private static final boolean WRITE_POINTS_INDIVIDUALLY = false;
-    private static final boolean CONSIDER_EXISTING_POINTS = false;
-    private static final double BOUNDING_BOX_FACTOR = 0.2;// za koliko povečamo mejo boundingboxa temp laz file-a
+    private static final boolean CONSIDER_EXISTING_POINTS = true;
+    private static final double BOUNDING_BOX_FACTOR = 3.0;// za koliko povečamo mejo boundingboxa temp laz file-a
+    private static final boolean CREATE_TEMP_FILE = true;
 
     private static int count = 0;
     private static List<double[]> points2Insert = new ArrayList<>();
@@ -63,7 +64,7 @@ public class Main {
         long endTime = System.nanoTime();
         long duration = (endTime - startTime);
         long time = TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS);
-        System.out.println(time);
+        System.out.println("Sekunde izvajanja: " + time);
         System.out.println("end");
     }
 
@@ -98,24 +99,32 @@ public class Main {
             FeatureIterator iterator = oldFeatureCollection.features();
 //            System.out.println(collection.size());
             int index = 0;
-            while (iterator.hasNext() && index++ <1) {//temp
+            while (iterator.hasNext() && index < 4) {//temp
+                index++;
                 Feature feature = iterator.next();
 
                 Property geom = feature.getProperty("the_geom");
 
                 //create temp.laz file from bounds of current building -> call las2las.exe
-                System.out.print("create temp laz file... ");
-                BoundingBox boundingBox = feature.getBounds();
-                Process process = Runtime.getRuntime().exec(String.format(Locale.ROOT,
-                        "las2las.exe -i %s -o %s -keep_xy %f %f %f %f",
-                        INPUT_FILE_NAME, TEMP_FILE_NAME,
-                        boundingBox.getMinX()-BOUNDING_BOX_FACTOR,
-                        boundingBox.getMinY()-BOUNDING_BOX_FACTOR,
-                        boundingBox.getMaxX()+BOUNDING_BOX_FACTOR,
-                        boundingBox.getMaxY()+BOUNDING_BOX_FACTOR
-                ));
-                process.waitFor();
-                System.out.println("Done");
+
+
+                if (CREATE_TEMP_FILE) {
+                    System.out.print("create temp laz file... ");
+                    BoundingBox boundingBox = feature.getBounds();
+                    String CMDparams = String.format(Locale.ROOT,
+                            "las2las.exe -i %s -o %s -keep_xy %f %f %f %f",
+                            INPUT_FILE_NAME, TEMP_FILE_NAME,
+                            boundingBox.getMinX()-BOUNDING_BOX_FACTOR,
+                            boundingBox.getMinY()-BOUNDING_BOX_FACTOR,
+                            boundingBox.getMaxX()+BOUNDING_BOX_FACTOR,
+                            boundingBox.getMaxY()+BOUNDING_BOX_FACTOR
+                    );
+                    Runtime.getRuntime().exec(CMDparams).waitFor();
+                    System.out.println("Done");
+                } else {
+                    TEMP_FILE_NAME = INPUT_FILE_NAME; //if there is no tempfile, we always read from source
+                }
+
 
 //                int result = JniLibraryHelpers.createTempLaz(
 //                        boundingBox.getMinX()-BOUNDING_BOX_FACTOR,
@@ -299,6 +308,7 @@ public class Main {
     }
 
     //todo - ko iščeš min in max, poglej kaj se zgodi če dobiš premalo točk - samo ena ali celo nič - povečaj toleracno
+    //todo - kaj pa tam ko odstopa od shapefajla - zelo, povečaš toleranco?
 
     public static FeatureSource getFeatureSource() {
         File file = new File("./data/BU_STAVBE_P.shp");
