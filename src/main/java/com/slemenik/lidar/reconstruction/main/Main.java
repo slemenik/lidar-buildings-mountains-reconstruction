@@ -23,47 +23,47 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
+import org.opengis.geometry.BoundingBox;
 
-import java.io.File;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
-    private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 1.0;
+    private static final String INPUT_FILE_NAME = ".\\data\\462_100_grad.laz";
+    private static final String OUTPUT_FILE_NAME =".\\data\\out.laz";
+    private static final String TEMP_FILE_NAME = ".\\data\\temp.laz";
+
+    private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
     private static final double CREATED_POINTS_SPACING = 0.2;//2.0;//0.2;
-    private static final boolean WRITE_POINTS_INDIVIDUALY = false;
+    private static final boolean WRITE_POINTS_INDIVIDUALLY = false;
+    private static final boolean CONSIDER_EXISTING_POINTS = false;
+    private static final double BOUNDING_BOX_FACTOR = 0.2;// za koliko povečamo mejo boundingboxa temp laz file-a
 
     private static int count = 0;
     private static List<double[]> points2Insert = new ArrayList<>();
 
     public static void main(String[] args) {
         System.out.println("start");
-//        write();
-//        int returnValue = JniLibraryHelpers.writePointList();
-        //int returnValue2 = JniLibraryHelpers.writePoint(1.0,2.0,3.0);
-//        System.out.println(returnValue);
-        //System.out.println(returnValue2);
+        long startTime = System.nanoTime();
+        write();
+        System.out.println("Konec racunanja.");
 
-        System.out.println("Konec racunanja, zacetek pisanja...");
-
-        double[][] list =  {
-                {1.0,11.0,111.0},
-                {2.0,22.0,222.0},
-                {3.0,33.0,333.0},
-                {4.0,44.0,444.0},
-                {5.0,55.0,555.0}
-        };
-
-        int a = JniLibraryHelpers.writePointList(list);
-        System.out.println(a);
+        System.out.println(String.format(Locale.ROOT, "%f %f", 462356.5542241777, 100650.86422597301));
 
         if (!points2Insert.isEmpty()) {
+            System.out.println("zacetek pisanja... ");
             double[][] pointListDoubleArray = points2Insert.toArray(new double[][]{});
-            int returnValue = JniLibraryHelpers.writePointList(pointListDoubleArray);
-             System.out.println(returnValue);
+            int returnValue = JniLibraryHelpers.writePointList(pointListDoubleArray, INPUT_FILE_NAME, OUTPUT_FILE_NAME);
+            System.out.println(returnValue);
         }
+
         System.out.println();
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime);
+        long time = TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS);
+        System.out.println(time);
         System.out.println("end");
     }
 
@@ -83,7 +83,7 @@ public class Main {
 
             FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
 //            Filter filter = ff.bbox("the_geom", 462000.0, 100000.0, 463000.0, 101000.0, srs); //dejanske koordinate
-            Filter filter = ff.bbox("the_geom", 462258.0, 100584.0, 462452.0, 100696.0, srs); //lj grad
+            Filter filter = ff.bbox("the_geom", 462258.0, 100584.0, 462452.0, 100696.0, srs); //lj grad, temp
 //            ff.property( "the_geom"), ff.literal( 12 )
 //            Filter filter = CQL.toFilter(text.getText());
 
@@ -98,10 +98,32 @@ public class Main {
             FeatureIterator iterator = oldFeatureCollection.features();
 //            System.out.println(collection.size());
             int index = 0;
-            while (iterator.hasNext() && index++ < 2) {//temp
+            while (iterator.hasNext() && index++ <1) {//temp
                 Feature feature = iterator.next();
 
                 Property geom = feature.getProperty("the_geom");
+
+                //create temp.laz file from bounds of current building -> call las2las.exe
+                System.out.print("create temp laz file... ");
+                BoundingBox boundingBox = feature.getBounds();
+                Process process = Runtime.getRuntime().exec(String.format(Locale.ROOT,
+                        "las2las.exe -i %s -o %s -keep_xy %f %f %f %f",
+                        INPUT_FILE_NAME, TEMP_FILE_NAME,
+                        boundingBox.getMinX()-BOUNDING_BOX_FACTOR,
+                        boundingBox.getMinY()-BOUNDING_BOX_FACTOR,
+                        boundingBox.getMaxX()+BOUNDING_BOX_FACTOR,
+                        boundingBox.getMaxY()+BOUNDING_BOX_FACTOR
+                ));
+                process.waitFor();
+                System.out.println("Done");
+
+//                int result = JniLibraryHelpers.createTempLaz(
+//                        boundingBox.getMinX()-BOUNDING_BOX_FACTOR,
+//                        boundingBox.getMinY()-BOUNDING_BOX_FACTOR,
+//                        boundingBox.getMaxX()+BOUNDING_BOX_FACTOR,
+//                        boundingBox.getMaxY()+BOUNDING_BOX_FACTOR
+//                );
+
 
 //                GeometryAttribute sourceGeometry = feature.getDefaultGeometryProperty();
 //                System.out.println(feature.getType().getName().toString());
@@ -120,20 +142,19 @@ public class Main {
 //                System.out.println(feature.getType().getName().toString());
 //                System.out.println(feature.getBounds().getMaxY());
 //
-//                System.out.println(feature.getDefaultGeometryProperty().getDescriptor().getCoordinateReferenceSystem());
-//                System.out.println(feature.getDefaultGeometryProperty().getValue());
+                //System.out.println(feature.getDefaultGeometryProperty().getDescriptor().getCoordinateReferenceSystem());
+                //System.out.println(feature.getDefaultGeometryProperty().getValue());
 //                System.out.println(feature.getDefaultGeometryProperty().getBounds());
 //                System.out.println(feature.getBounds());
 //                System.out.println(feature.getType());
 //                System.out.println(geom.getName());
-//                System.out.println(geom.getType());
+//                System.out.println(geom.getType().getDescription());
 //                System.out.println(geom.getUserData());
 //                System.out.println(geom.getDescriptor());
 
                 System.out.println("Stavba"+index);
                 MultiPolygon buildingPolygon = (MultiPolygon) geom.getValue();
                 Coordinate[] buildingVertices = buildingPolygon.getCoordinates();
-
                 for (int i = 0; i < buildingVertices.length - 1; i++ ) { //for each until the one before last
                     Coordinate vertexFrom =  buildingVertices[i];
                     Coordinate vertexTo = buildingVertices[i+1];
@@ -253,8 +274,8 @@ public class Main {
         double currentZ = minZ + CREATED_POINTS_SPACING; //we set first Z above minZ, avoiding duplicates points on same level
         while (currentZ < maxZ) {
 //            Main.count++;
-            if (WRITE_POINTS_INDIVIDUALY) {
-                JniLibraryHelpers.writePoint(x,y,currentZ);
+            if (WRITE_POINTS_INDIVIDUALLY) {
+                JniLibraryHelpers.writePoint(x,y,currentZ, INPUT_FILE_NAME, OUTPUT_FILE_NAME);
             } else {
                 points2Insert.add(new double[]{x,y,currentZ});
             }
@@ -264,42 +285,16 @@ public class Main {
         }
     }
 
-    public static Iterable<LASPoint> getLasPoints() { //todo; use Native Library
-        LASReader reader = new LASReader(new File("./data/out2.laz"));
-//        LASReader reader = new LASReader(new File("./data/462_100_grad.laz"));
-        return reader.getPoints();
-    }
-
-
 
     public static void createHeightLine(Coordinate c) {
 //        System.out.println("Ustvari točke na koordinati " + c);
-        double maxHeight = 0.0;
-        double minHeight = Double.MAX_VALUE;
-
-        PriorityQueue<Coordinate> queue = new PriorityQueue<>((o1, o2) -> {
-            double d1 = o1.distance(c);
-            double d2 = o2.distance(c);
-            return Double.compare(d1,d2);
-        });
-
-        for (LASPoint p : getLasPoints()) {
-            double lasX = p.getX() / 100.0;
-            double lasY = p.getY() / 100.0;
-            double lasZ = p.getZ() / 100.0;
-
-            Coordinate c1 = new Coordinate(lasX, lasY);
-
-            // calculate max and min z coordinate
-            if (c.equals2D(c1, DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD)) {
-                if (lasZ > maxHeight) maxHeight = lasZ;
-                if (lasZ < minHeight) minHeight = lasZ;
-            }
-            queue.add(c1);
-
+        double[] coordinates = JniLibraryHelpers.getMinMaxHeight(c.x,c.y, DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD, TEMP_FILE_NAME);
+        if (CONSIDER_EXISTING_POINTS){
+            createPoints(coordinates[0], coordinates[1], coordinates[2], coordinates[3]);
+        } else {
+            createPoints(coordinates[0], coordinates[1], c.x, c.y);
         }
-        Coordinate closest = queue.peek();
-        createPoints(minHeight, maxHeight, closest.x, closest.y);
+
 //        System.out.println("Točke ustvarjene.");
     }
 
