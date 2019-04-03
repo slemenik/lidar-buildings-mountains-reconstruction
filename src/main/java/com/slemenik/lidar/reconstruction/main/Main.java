@@ -3,6 +3,7 @@ package com.slemenik.lidar.reconstruction.main;
 import com.github.mreutegg.laszip4j.LASPoint;
 import com.github.mreutegg.laszip4j.LASReader;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
+import org.apache.commons.io.FilenameUtils;
 import org.geotools.data.*;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.shapefile.ShapefileDataStore;
@@ -31,15 +32,16 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
 
-    private static final String INPUT_FILE_NAME = ".\\data\\462_100_grad.laz";
+    private static final String INPUT_FILE_NAME = ".\\data\\GK_459_100.laz";
+//    private static final String INPUT_FILE_NAME = ".\\data\\462_100_grad.laz";
     private static final String OUTPUT_FILE_NAME =".\\data\\out.laz";
     private static String TEMP_FILE_NAME = ".\\data\\temp.laz";
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 1; //manjše je bolj natančno za detajle, ne prekrije celega
     private static final double CREATED_POINTS_SPACING = 0.5;//2.0;//0.2;
     private static final boolean WRITE_POINTS_INDIVIDUALLY = false;
-    private static final boolean CONSIDER_EXISTING_POINTS = true;
-    private static final double BOUNDING_BOX_FACTOR = 3.0;// za koliko povečamo mejo boundingboxa temp laz file-a
+    private static final boolean CONSIDER_EXISTING_POINTS = false;
+    private static final double BOUNDING_BOX_FACTOR = 2.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
 
     private static int count = 0;
@@ -51,7 +53,8 @@ public class Main {
         write();
         System.out.println("Konec racunanja.");
 
-        System.out.println(String.format(Locale.ROOT, "%f %f", 462356.5542241777, 100650.86422597301));
+
+//        System.out.println(f.getAbsoluteFile());
 
         if (!points2Insert.isEmpty()) {
             System.out.println("zacetek pisanja... ");
@@ -66,6 +69,26 @@ public class Main {
         long time = TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS);
         System.out.println("Sekunde izvajanja: " + time);
         System.out.println("end");
+    }
+
+    public static int[] getLowerBoundsFromFilename(String filename){
+        String fileName = FilenameUtils.getBaseName(filename);
+        int bboxX = 0;
+        int bboxY = 0;
+        for (String str : fileName.split("_")) {
+            try {
+                int num = Integer.parseInt(str);
+                if (bboxX == 0) {
+                    bboxX = num;
+                } else if (bboxY == 0) {
+                    bboxY = num;
+                    break;
+                }
+            } catch (NumberFormatException e) {
+
+            }
+        }
+        return new int[]{bboxX*1000, bboxY*1000};
     }
 
     public static void write () {
@@ -83,8 +106,10 @@ public class Main {
             String srs = oldFeatureSource.getBounds().getCoordinateReferenceSystem().toString();
 
             FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
-//            Filter filter = ff.bbox("the_geom", 462000.0, 100000.0, 463000.0, 101000.0, srs); //dejanske koordinate
-            Filter filter = ff.bbox("the_geom", 462258.0, 100584.0, 462452.0, 100696.0, srs); //lj grad, temp
+
+            int bounds[] = getLowerBoundsFromFilename(INPUT_FILE_NAME);
+            Filter filter = ff.bbox("the_geom", bounds[0], bounds[1], bounds[0]+1000, bounds[1]+1000, srs); //dejanske koordinate
+//            Filter filter = ff.bbox("the_geom", 462258.0, 100584.0, 462452.0, 100696.0, srs); //lj grad, temp
 //            ff.property( "the_geom"), ff.literal( 12 )
 //            Filter filter = CQL.toFilter(text.getText());
 
@@ -99,15 +124,13 @@ public class Main {
             FeatureIterator iterator = oldFeatureCollection.features();
 //            System.out.println(collection.size());
             int index = 0;
-            while (iterator.hasNext() && index < 4) {//temp
+            while (iterator.hasNext() && index > -1) {//temp
                 index++;
                 Feature feature = iterator.next();
 
                 Property geom = feature.getProperty("the_geom");
 
                 //create temp.laz file from bounds of current building -> call las2las.exe
-
-
                 if (CREATE_TEMP_FILE) {
                     System.out.print("create temp laz file... ");
                     BoundingBox boundingBox = feature.getBounds();
@@ -309,6 +332,14 @@ public class Main {
 
     //todo - ko iščeš min in max, poglej kaj se zgodi če dobiš premalo točk - samo ena ali celo nič - povečaj toleracno
     //todo - kaj pa tam ko odstopa od shapefajla - zelo, povečaš toleranco?
+    //todo - zapiši še ostale atribute npr. klasifikacijo, index return itd - poskusi tudi user data - vse private static final paramtere s katerimi si kreiral trenutni file
+    //todo - tam kjer so v steni še vseeno luknje - mogočeč dinamično večanje radija pri MinMAXHeight, ali pa upoštevanje sosdenjih točk gleda na klasifikacijo
+    //npr. minHegiht za tla, Max za streho
+    //todo napiš source za laslib v githubu od cpp
+    //todo - odstrani nepotrebne knjižnice (za branje las) iz import in iz pom
+    //todo zbriši temp file ko končas
+    //todo preimenuj dll
+    //todo glej robne točke oz robne stavbe - kaj je z njimi
 
     public static FeatureSource getFeatureSource() {
         File file = new File("./data/BU_STAVBE_P.shp");
