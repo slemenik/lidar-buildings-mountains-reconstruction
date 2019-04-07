@@ -27,13 +27,15 @@ import org.opengis.filter.FilterFactory;
 import org.opengis.geometry.BoundingBox;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
 
-    private static final String INPUT_FILE_NAME = ".\\data\\GK_459_100.laz";
-//    private static final String INPUT_FILE_NAME = ".\\data\\462_100_grad.laz";
+//    private static final String INPUT_FILE_NAME = ".\\data\\410_137_triglav.laz";
+    private static final String INPUT_FILE_NAME = ".\\data\\462_100_grad.laz";
     private static final String OUTPUT_FILE_NAME =".\\data\\out.laz";
     private static String TEMP_FILE_NAME = ".\\data\\temp.laz";
 
@@ -43,9 +45,25 @@ public class Main {
     private static final boolean CONSIDER_EXISTING_POINTS = false;
     private static final double BOUNDING_BOX_FACTOR = 2.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
+    private static final boolean PROCESS_WHOLE_FILE = true;
 
     private static int count = 0;
     private static List<double[]> points2Insert = new ArrayList<>();
+
+    public static String getHTML(String urlToRead) throws Exception {
+        StringBuilder result = new StringBuilder();
+        URL url = new URL(urlToRead);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        String line;
+        while ((line = rd.readLine()) != null) {
+            result.append(line);
+            //System.out.println(result);
+        }
+        rd.close();
+        return result.toString();
+    }
 
     public static void main(String[] args) {
         System.out.println("start");
@@ -106,10 +124,18 @@ public class Main {
             String srs = oldFeatureSource.getBounds().getCoordinateReferenceSystem().toString();
 
             FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
+            Filter filter;
 
-            int bounds[] = getLowerBoundsFromFilename(INPUT_FILE_NAME);
-            Filter filter = ff.bbox("the_geom", bounds[0], bounds[1], bounds[0]+1000, bounds[1]+1000, srs); //dejanske koordinate
-//            Filter filter = ff.bbox("the_geom", 462258.0, 100584.0, 462452.0, 100696.0, srs); //lj grad, temp
+            if (PROCESS_WHOLE_FILE) {
+                int bounds[] = getLowerBoundsFromFilename(INPUT_FILE_NAME);
+                filter = ff.bbox("the_geom", bounds[0], bounds[1], bounds[0]+1000, bounds[1]+1000, srs);
+            } else {
+                filter = ff.bbox("the_geom", 462735, 97883, 462829 , 98000, srs); //lj grad, temp
+            }
+
+
+//
+
 //            ff.property( "the_geom"), ff.literal( 12 )
 //            Filter filter = CQL.toFilter(text.getText());
 
@@ -334,12 +360,15 @@ public class Main {
     //todo - kaj pa tam ko odstopa od shapefajla - zelo, povečaš toleranco?
     //todo - zapiši še ostale atribute npr. klasifikacijo, index return itd - poskusi tudi user data - vse private static final paramtere s katerimi si kreiral trenutni file
     //todo - tam kjer so v steni še vseeno luknje - mogočeč dinamično večanje radija pri MinMAXHeight, ali pa upoštevanje sosdenjih točk gleda na klasifikacijo
-    //npr. minHegiht za tla, Max za streho
+    // npr. minHegiht za tla, Max za streho
     //todo napiš source za laslib v githubu od cpp
     //todo - odstrani nepotrebne knjižnice (za branje las) iz import in iz pom
     //todo zbriši temp file ko končas
     //todo preimenuj dll
     //todo glej robne točke oz robne stavbe - kaj je z njimi
+    //todo raziskuj kaj se zgodi in kako zajezit napako, ko se bbox ne ujema z dejanskim fajlom in se temp ne ustvari
+    //todo related zgoraj - kaj če se ne zgeneraira temp file - že iz prve, torej je prazen ali pa se upošteva še prejšnji
+    // mogoče dodaj še da se lahko iz dveh laz fajlov skupej naredi naenkrat rezultat
 
     public static FeatureSource getFeatureSource() {
         File file = new File("./data/BU_STAVBE_P.shp");
