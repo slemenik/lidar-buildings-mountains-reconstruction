@@ -1,7 +1,5 @@
 package com.slemenik.lidar.reconstruction.main;
 
-import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -29,9 +27,9 @@ public class HeightController {
                     double x = Double.parseDouble(coordinates[0]);
                     double y = Double.parseDouble(coordinates[1]);
                     double z = Double.parseDouble(coordinates[2]);
-                    int bounds[] = Main.getLowerBoundsFromFilename(lazFilename);
+                    int bounds[] = Main.getBoundsFromFilename(lazFilename);
 
-                    if (bounds[0] <= x && bounds[1] <= y && bounds[0] + 1000 >= x && bounds[1] + 1000 >= y) {
+                    if (bounds[0] <= x && bounds[1] <= y && bounds[2] >= x && bounds[3] >= y) {
                         this.points2Insert.add(new double[]{x, y, z});
                     }
                     if (points2Insert.size() > 16 * 1000000) {

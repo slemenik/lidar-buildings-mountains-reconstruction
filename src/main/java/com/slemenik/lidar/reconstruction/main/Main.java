@@ -1,7 +1,5 @@
 package com.slemenik.lidar.reconstruction.main;
 
-import com.github.mreutegg.laszip4j.LASPoint;
-import com.github.mreutegg.laszip4j.LASReader;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import org.apache.commons.io.FilenameUtils;
 import org.geotools.data.*;
@@ -39,13 +37,14 @@ public class Main {
     private static final String OUTPUT_FILE_NAME =".\\data\\out.laz";
     private static String TEMP_FILE_NAME = ".\\data\\temp.laz";
 
-    private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 1; //manjše je bolj natančno za detajle, ne prekrije celega
-    private static final double CREATED_POINTS_SPACING = 0.5;//2.0;//0.2;
+    private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
+    private static final double CREATED_POINTS_SPACING = 0.2;//2.0;//0.2;
     private static final boolean WRITE_POINTS_INDIVIDUALLY = false;
-    private static final boolean CONSIDER_EXISTING_POINTS = false;
-    private static final double BOUNDING_BOX_FACTOR = 2.0;// za koliko povečamo mejo boundingboxa temp laz file-a
+    private static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
+    private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
-    private static final boolean PROCESS_WHOLE_FILE = true;
+    private static final boolean PROCESS_WHOLE_FILE = false;
+    private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
 
     private static int count = 0;
     private static List<double[]> points2Insert = new ArrayList<>();
@@ -89,7 +88,7 @@ public class Main {
         System.out.println("end");
     }
 
-    public static int[] getLowerBoundsFromFilename(String filename){
+    public static int[] getBoundsFromFilename(String filename){
         String fileName = FilenameUtils.getBaseName(filename);
         int bboxX = 0;
         int bboxY = 0;
@@ -106,7 +105,7 @@ public class Main {
 
             }
         }
-        return new int[]{bboxX*1000, bboxY*1000};
+        return new int[]{bboxX*1000, bboxY*1000, (bboxX*1000)+1000, (bboxY*1000)+1000};
     }
 
     public static void write () {
@@ -124,18 +123,11 @@ public class Main {
             String srs = oldFeatureSource.getBounds().getCoordinateReferenceSystem().toString();
 
             FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
-            Filter filter;
 
-            if (PROCESS_WHOLE_FILE) {
-                int bounds[] = getLowerBoundsFromFilename(INPUT_FILE_NAME);
-                filter = ff.bbox("the_geom", bounds[0], bounds[1], bounds[0]+1000, bounds[1]+1000, srs);
-            } else {
-                filter = ff.bbox("the_geom", 462735, 97883, 462829 , 98000, srs); //lj grad, temp
-            }
-
+            int bounds[] = PROCESS_WHOLE_FILE ? getBoundsFromFilename(INPUT_FILE_NAME) : TEMP_BOUNDS;
+            Filter filter = ff.bbox("the_geom", bounds[0], bounds[1], bounds[2], bounds[3], srs);
 
 //
-
 //            ff.property( "the_geom"), ff.literal( 12 )
 //            Filter filter = CQL.toFilter(text.getText());
 
