@@ -10,61 +10,76 @@ import org.opengis.feature.Property;
 import org.opengis.geometry.BoundingBox;
 
 import java.io.IOException;
-import java.io.InterruptedIOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
-
-import static com.slemenik.lidar.reconstruction.main.Main.*;
 
 public class BuildingController {
 
+    public String inputLazFileName;
+    public boolean createTempLazFile;
+    public String tempLazFileName;
+    public double boundingBoxFactor;
+    public double createdPointsSpacing;
+    public boolean writePointsIndividually;
+    public double distanceFromOriginalPointThreshold;
+    public boolean considerExistingPoints;
+    public String outputFileName;
+    public String shpFileName;
 
-    public static void write() {
-        int bounds[] = ShpController.getBoundsFromFilename(INPUT_FILE_NAME);
+    public List<double[]> points2Insert = new ArrayList<>();
+
+    public void write() {
+        int bounds[] = ShpController.getBoundsFromFilename(inputLazFileName);
         write(bounds);
     }
 
-    public static void write(int[] bounds) {
+    public void write(int[] bounds) {
 
 
-        FeatureIterator iterator = ShpController.getFeatures(bounds);
+        FeatureIterator iterator = ShpController.getFeatures(bounds, shpFileName);
 
         int index = 0;
         while (iterator.hasNext() && index < 2) {//temp
             index++;
+            int j =0;
+//            while (j++ < 8){
+//                iterator.next();
+//            }
             Feature feature = iterator.next();
 
             Property geom = feature.getProperty("the_geom");
 
             //create temp.laz file from bounds of current building -> call las2las.exe
-            if (CREATE_TEMP_FILE) {
+            if (createTempLazFile) {
                 System.out.print("create temp laz file... ");
                 BoundingBox boundingBox = feature.getBounds();
                 String CMDparams = String.format(Locale.ROOT,
                         "las2las.exe -i %s -o %s -keep_xy %f %f %f %f",
-                        INPUT_FILE_NAME, TEMP_FILE_NAME,
-                        boundingBox.getMinX()-BOUNDING_BOX_FACTOR,
-                        boundingBox.getMinY()-BOUNDING_BOX_FACTOR,
-                        boundingBox.getMaxX()+BOUNDING_BOX_FACTOR,
-                        boundingBox.getMaxY()+BOUNDING_BOX_FACTOR
+                        inputLazFileName, tempLazFileName,
+                        boundingBox.getMinX()- boundingBoxFactor,
+                        boundingBox.getMinY()- boundingBoxFactor,
+                        boundingBox.getMaxX()+ boundingBoxFactor,
+                        boundingBox.getMaxY()+ boundingBoxFactor
                 );
                 try {
                     Runtime.getRuntime().exec(CMDparams).waitFor();
                 } catch (IOException | InterruptedException e) {
                     System.out.println("Error creating temp .laz file: " + e);
                     System.out.print("Reading from input file...");
-                    TEMP_FILE_NAME = INPUT_FILE_NAME;
+                    tempLazFileName = inputLazFileName;
                 }
                 System.out.println("Done");
             } else {
-                TEMP_FILE_NAME = INPUT_FILE_NAME; //if there is no tempfile, we always read from source
+                tempLazFileName = inputLazFileName; //if there is no tempfile, we always read from source
             }
 
 
 //                int result = JniLibraryHelpers.createTempLaz(
-//                        boundingBox.getMinX()-BOUNDING_BOX_FACTOR,
-//                        boundingBox.getMinY()-BOUNDING_BOX_FACTOR,
-//                        boundingBox.getMaxX()+BOUNDING_BOX_FACTOR,
-//                        boundingBox.getMaxY()+BOUNDING_BOX_FACTOR
+//                        boundingBox.getMinX()-boundingBoxFactor,
+//                        boundingBox.getMinY()-boundingBoxFactor,
+//                        boundingBox.getMaxX()+boundingBoxFactor,
+//                        boundingBox.getMaxY()+boundingBoxFactor
 //                );
 
 
@@ -129,38 +144,38 @@ public class BuildingController {
     }
 
 
-    public static void createWall(Coordinate startCoordinate, Coordinate endCoordinate) {
+    public void createWall(Coordinate startCoordinate, Coordinate endCoordinate) {
         System.out.println("Ustvari zid od " + startCoordinate + " do " + endCoordinate);
         Coordinate currentCoordinate = startCoordinate.copy();
         double wallLength = startCoordinate.distance(endCoordinate);
         while (startCoordinate.distance(currentCoordinate) <= wallLength) {
             createHeightLine(currentCoordinate);
-            currentCoordinate = getNextCoordinate(currentCoordinate, endCoordinate, CREATED_POINTS_SPACING);
+            currentCoordinate = getNextCoordinate(currentCoordinate, endCoordinate, createdPointsSpacing);
         }
         System.out.println("Zid ustvarjen.");
     }
 
-    public static void createPoints(double minZ, double maxZ, double x, double y) {
+    private void createPoints(double minZ, double maxZ, double x, double y) {
 //        System.out.println("Ustvari točke od višine " + minZ + " do " + maxZ);
-        double currentZ = minZ + CREATED_POINTS_SPACING; //we set first Z above minZ, avoiding duplicates points on same level
+        double currentZ = minZ + createdPointsSpacing; //we set first Z above minZ, avoiding duplicates points on same level
         while (currentZ < maxZ) {
 //            Main.count++;
-            if (WRITE_POINTS_INDIVIDUALLY) {
-                JniLibraryHelpers.writePoint(x,y,currentZ, INPUT_FILE_NAME, OUTPUT_FILE_NAME);
+            if (writePointsIndividually) {
+                JniLibraryHelpers.writePoint(x,y,currentZ, inputLazFileName, outputFileName);
             } else {
                 points2Insert.add(new double[]{x,y,currentZ});
             }
 
 //            System.out.println(new Coordinate(x, y, currentZ));
-            currentZ += CREATED_POINTS_SPACING;
+            currentZ += createdPointsSpacing;
         }
     }
 
 
-    public static void createHeightLine(Coordinate c) {
+    private void createHeightLine(Coordinate c) {
 //        System.out.println("Ustvari točke na koordinati " + c);
-        double[] coordinates = JniLibraryHelpers.getMinMaxHeight(c.x,c.y, DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD, TEMP_FILE_NAME);
-        if (CONSIDER_EXISTING_POINTS){
+        double[] coordinates = JniLibraryHelpers.getMinMaxHeight(c.x,c.y, distanceFromOriginalPointThreshold, tempLazFileName);
+        if (considerExistingPoints){
             createPoints(coordinates[0], coordinates[1], coordinates[2], coordinates[3]);
         } else {
             createPoints(coordinates[0], coordinates[1], c.x, c.y);

@@ -53,16 +53,25 @@ public class Main {
         System.out.println("start");
         long startTime = System.nanoTime();
 
-
-        BuildingController.write(TEMP_BOUNDS);
+        BuildingController bc = new BuildingController();
+        bc.inputLazFileName = INPUT_FILE_NAME;
+        bc.createTempLazFile = CREATE_TEMP_FILE;
+        bc.tempLazFileName = TEMP_FILE_NAME;
+        bc.boundingBoxFactor = BOUNDING_BOX_FACTOR;
+        bc.createdPointsSpacing = CREATED_POINTS_SPACING;
+        bc.writePointsIndividually = WRITE_POINTS_INDIVIDUALLY;
+        bc.distanceFromOriginalPointThreshold = DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD;
+        bc.considerExistingPoints = CONSIDER_EXISTING_POINTS;
+        bc.outputFileName = OUTPUT_FILE_NAME;
+        bc.shpFileName = DATA_FOLDER + "BU_STAVBE_P.shp";
+        bc.write(TEMP_BOUNDS);
 //        write(TEMP_BOUNDS);
         System.out.println("Konec racunanja.");
 
         //Triangulation.triangulate(DMR_FILE_NAME);
 
-        HeightController hc = new HeightController();
-        //hc.readAscFile(DMR_FILE_NAME);
-        points2Insert = hc.points2Insert;
+        //heightController.readAscFile(DMR_FILE_NAME);
+        points2Insert = bc.points2Insert;
         try {
             //String a = getHTML("http://maps.googleapis.com/maps/api/streetview?size=600x400&location=12420+timber+heights,+Austin&key=AIzaSyCkUOdZ5y7hMm0yrcCQoCvLwzdM6M8s5qk");
             //System.out.println(a);

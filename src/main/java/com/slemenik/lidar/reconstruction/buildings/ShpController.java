@@ -1,6 +1,5 @@
 package com.slemenik.lidar.reconstruction.buildings;
 
-import com.slemenik.lidar.reconstruction.main.Main;
 import org.apache.commons.io.FilenameUtils;
 import org.geotools.data.*;
 import org.geotools.data.collection.ListFeatureCollection;
@@ -12,27 +11,22 @@ import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.MultiPolygon;
-import org.opengis.feature.Feature;
-import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
-import org.opengis.geometry.BoundingBox;
-
 import java.io.File;
 import java.io.Serializable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import static com.slemenik.lidar.reconstruction.main.Main.DATA_FOLDER;
 
 public class ShpController {
 
-    public static FeatureSource getFeatureSource() {
-        File file = new File(DATA_FOLDER + "BU_STAVBE_P.shp");
+    public static FeatureSource getFeatureSource(String shpFileName) {
+        File file = new File(shpFileName);
         FeatureSource featureSource = null;
         try {
             Map<String, String> connect = new HashMap();
@@ -52,10 +46,10 @@ public class ShpController {
         return featureSource;
     }
 
-    public static FeatureIterator getFeatures (int bounds[]) {
+    public static FeatureIterator getFeatures (int bounds[], String shpFileName) {
         try {
 
-            FeatureSource oldFeatureSource = getFeatureSource();
+            FeatureSource oldFeatureSource = getFeatureSource(shpFileName);
 
             String typeName = "BU_STAVBE_P";
 
@@ -113,12 +107,12 @@ public class ShpController {
         return new int[]{bboxX*1000, bboxY*1000, (bboxX*1000)+1000, (bboxY*1000)+1000};
     }
 
-    public static void writeShpFile(FeatureSource oldFeatureSource, List<SimpleFeature> features, FeatureCollection oldFeatureCollection) {
+    public static void writeShpFile(FeatureSource oldFeatureSource, List<SimpleFeature> features, FeatureCollection oldFeatureCollection, String newFileName) {
         try {
             /*
              * Get an output file name and create the new shapefile
              */
-            File newFile = new File(DATA_FOLDER + "test.shp");
+            File newFile = new File(newFileName);
 
             ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
 
