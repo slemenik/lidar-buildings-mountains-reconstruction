@@ -27,10 +27,6 @@ public class JniLibraryHelpers {
         System.out.println(s);
     }
 
-    public static Integer writePoint(double x, double y, double z, String inputFileName, String outputFileName) {
-        return writePointList(new double[][]{{x,y,z}}, inputFileName, outputFileName);
-    }
-
     public static Integer writePointList(String inputFileName, String outputFileName) {
         double[][] list =  {
                 {1.0,11.0,111.0},

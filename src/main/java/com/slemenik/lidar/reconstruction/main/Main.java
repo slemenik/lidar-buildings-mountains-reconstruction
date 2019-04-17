@@ -13,20 +13,19 @@ import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 
 public class Main {
 
-//    private static final String INPUT_FILE_NAME = ".\\data\\410_137_triglav.laz";
-    public static final String DATA_FOLDER = "";
-    public static final String INPUT_FILE_NAME = DATA_FOLDER + "462_100_grad.laz";
-    public static final String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
-    public static String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
-    public static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
+    public static final String DATA_FOLDER = ".";
 
-    public static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
-    public static final double CREATED_POINTS_SPACING = 0.2;//2.0;//0.2;
-    public static final boolean WRITE_POINTS_INDIVIDUALLY = false;
-    public static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
-    public static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
-    public static final boolean CREATE_TEMP_FILE = true;
-    public static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
+    private static final String INPUT_FILE_NAME = DATA_FOLDER + "462_100_grad.laz";
+    private static final String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
+    private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
+    private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
+
+    private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
+    private static final double CREATED_POINTS_SPACING = 0.2;//2.0;//0.2;
+    private static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
+    private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
+    private static final boolean CREATE_TEMP_FILE = true;
+    private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
 
 
     public static void main(String[] args) {
@@ -57,7 +56,6 @@ public class Main {
         bc.tempLazFileName = TEMP_FILE_NAME;
         bc.boundingBoxFactor = BOUNDING_BOX_FACTOR;
         bc.createdPointsSpacing = CREATED_POINTS_SPACING;
-        bc.writePointsIndividually = WRITE_POINTS_INDIVIDUALLY;
         bc.distanceFromOriginalPointThreshold = DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD;
         bc.considerExistingPoints = CONSIDER_EXISTING_POINTS;
         bc.outputFileName = OUTPUT_FILE_NAME;

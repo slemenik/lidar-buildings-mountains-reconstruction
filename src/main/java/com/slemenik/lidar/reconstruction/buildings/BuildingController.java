@@ -21,7 +21,6 @@ public class BuildingController {
     public String tempLazFileName;
     public double boundingBoxFactor;
     public double createdPointsSpacing;
-    public boolean writePointsIndividually;
     public double distanceFromOriginalPointThreshold;
     public boolean considerExistingPoints;
     public String outputFileName;
@@ -159,13 +158,7 @@ public class BuildingController {
 //        System.out.println("Ustvari točke od višine " + minZ + " do " + maxZ);
         double currentZ = minZ + createdPointsSpacing; //we set first Z above minZ, avoiding duplicates points on same level
         while (currentZ < maxZ) {
-//            Main.count++;
-            if (writePointsIndividually) {
-                JniLibraryHelpers.writePoint(x,y,currentZ, inputLazFileName, outputFileName);
-            } else {
-                points2Insert.add(new double[]{x,y,currentZ});
-            }
-
+            points2Insert.add(new double[]{x,y,currentZ});
 //            System.out.println(new Coordinate(x, y, currentZ));
             currentZ += createdPointsSpacing;
         }
