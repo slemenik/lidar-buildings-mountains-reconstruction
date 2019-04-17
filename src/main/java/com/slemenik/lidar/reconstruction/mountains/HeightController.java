@@ -1,4 +1,6 @@
-package com.slemenik.lidar.reconstruction.main;
+package com.slemenik.lidar.reconstruction.mountains;
+
+import com.slemenik.lidar.reconstruction.main.Main;
 
 import java.io.File;
 import java.io.FileNotFoundException;

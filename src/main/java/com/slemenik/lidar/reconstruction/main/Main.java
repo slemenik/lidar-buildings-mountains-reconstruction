@@ -1,6 +1,7 @@
 package com.slemenik.lidar.reconstruction.main;
 
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
+import com.slemenik.lidar.reconstruction.mountains.HeightController;
 import org.apache.commons.io.FilenameUtils;
 import org.geotools.data.*;
 import org.geotools.data.collection.ListFeatureCollection;
@@ -29,6 +30,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 
 public class Main {
 
@@ -72,8 +75,10 @@ public class Main {
         //write();
         System.out.println("Konec racunanja.");
 
+        Triangulation.triangulate(DMR_FILE_NAME);
+
         HeightController hc = new HeightController();
-        hc.readAscFile(DMR_FILE_NAME);
+        //hc.readAscFile(DMR_FILE_NAME);
         points2Insert = hc.points2Insert;
         try {
             //String a = getHTML("http://maps.googleapis.com/maps/api/streetview?size=600x400&location=12420+timber+heights,+Austin&key=AIzaSyCkUOdZ5y7hMm0yrcCQoCvLwzdM6M8s5qk");
@@ -356,21 +361,6 @@ public class Main {
 
 //        System.out.println("Točke ustvarjene.");
     }
-
-    //todo - ko iščeš min in max, poglej kaj se zgodi če dobiš premalo točk - samo ena ali celo nič - povečaj toleracno
-    //todo - kaj pa tam ko odstopa od shapefajla - zelo, povečaš toleranco?
-    //todo - zapiši še ostale atribute npr. klasifikacijo, index return itd - poskusi tudi user data - vse private static final paramtere s katerimi si kreiral trenutni file
-    //todo - tam kjer so v steni še vseeno luknje - mogočeč dinamično večanje radija pri MinMAXHeight, ali pa upoštevanje sosdenjih točk gleda na klasifikacijo
-    // npr. minHegiht za tla, Max za streho
-    //todo napiš source za laslib v githubu od cpp
-    //todo - odstrani nepotrebne knjižnice (za branje las) iz import in iz pom
-    //todo zbriši temp file ko končas
-    //todo preimenuj dll
-    //todo glej robne točke oz robne stavbe - kaj je z njimi
-    //todo raziskuj kaj se zgodi in kako zajezit napako, ko se bbox ne ujema z dejanskim fajlom in se temp ne ustvari
-    //todo related zgoraj - kaj če se ne zgeneraira temp file - že iz prve, torej je prazen ali pa se upošteva še prejšnji
-    // mogoče dodaj še da se lahko iz dveh laz fajlov skupej naredi naenkrat rezultat
-    // če sredi hiške odprt prostor, pote stene ne smejo bit povezane - npr hiške zravn grada
 
     public static FeatureSource getFeatureSource() {
         File file = new File("./data/BU_STAVBE_P.shp");
