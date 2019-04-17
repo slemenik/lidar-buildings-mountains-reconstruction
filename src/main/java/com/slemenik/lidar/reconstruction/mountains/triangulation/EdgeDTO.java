@@ -1,14 +1,14 @@
-package com.slemenik.lidar.reconstruction.mountains.triangulation.model;
+package com.slemenik.lidar.reconstruction.mountains.triangulation;
 
-public class Edge {
+public class EdgeDTO {
 
-    private Point point1;
-    private Point point2;
-    private Triangle parentTriangle;
+    private PointDTO point1;
+    private PointDTO point2;
+    private TriangleDTO parentTriangle;
 
-    public Edge (Point p1, Point point2, Triangle parentTriangle){
+    public EdgeDTO(PointDTO p1, PointDTO point2, TriangleDTO parentTriangle){
         this.setParentTriangle(parentTriangle);
-        //from lowest Point.id to highest
+        //from lowest PointDTO.id to highest
         if (p1.getId() < point2.getId()){
             this.setPoint1(p1);
             this.setPoint2(point2);
@@ -28,7 +28,7 @@ public class Edge {
     @Override
     public boolean equals(Object obj) {
 
-        return ((Edge) obj).getPoint1().equals(this.getPoint1()) && ((Edge) obj).getPoint2().equals(this.getPoint2());
+        return ((EdgeDTO) obj).getPoint1().equals(this.getPoint1()) && ((EdgeDTO) obj).getPoint2().equals(this.getPoint2());
     }
 
     @Override
@@ -46,27 +46,27 @@ public class Edge {
         return "E."+ getPoint1() +"," + getPoint2() + "(" + getParentTriangle() +")";
     }
 
-    public Point getPoint1() {
+    public PointDTO getPoint1() {
         return point1;
     }
 
-    public void setPoint1(Point point1) {
+    public void setPoint1(PointDTO point1) {
         this.point1 = point1;
     }
 
-    public Point getPoint2() {
+    public PointDTO getPoint2() {
         return point2;
     }
 
-    public void setPoint2(Point point2) {
+    public void setPoint2(PointDTO point2) {
         this.point2 = point2;
     }
 
-    public Triangle getParentTriangle() {
+    public TriangleDTO getParentTriangle() {
         return parentTriangle;
     }
 
-    public void setParentTriangle(Triangle parentTriangle) {
+    public void setParentTriangle(TriangleDTO parentTriangle) {
         this.parentTriangle = parentTriangle;
     }
 }

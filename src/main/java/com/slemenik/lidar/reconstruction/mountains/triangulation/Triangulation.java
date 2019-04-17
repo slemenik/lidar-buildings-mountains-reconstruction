@@ -1,9 +1,6 @@
 package com.slemenik.lidar.reconstruction.mountains.triangulation;
 
 import com.slemenik.lidar.reconstruction.main.Main;
-import com.slemenik.lidar.reconstruction.mountains.triangulation.model.Edge;
-import com.slemenik.lidar.reconstruction.mountains.triangulation.model.Point;
-import com.slemenik.lidar.reconstruction.mountains.triangulation.model.Triangle;
 import org.locationtech.jts.geom.Coordinate;
 
 import java.io.*;
@@ -15,17 +12,17 @@ public class Triangulation {
     public static void triangulate(String fileName) {
 
         System.out.println("Started...");
-        List<Point> pointList = getParsedData(fileName);
+        List<PointDTO> pointList = getParsedData(fileName);
         System.out.println(pointList.size());
-        HashSet<Triangle> triangulation = getTriangulation(pointList);
+        HashSet<TriangleDTO> triangulation = getTriangulation(pointList);
         makeOBJ(triangulation, true);
         System.out.println("Finished.");
     }
 
-    //1. Point cloud data
-    private static List<Point> getParsedData(String fileName) {
+    //1. PointDTO cloud data
+    private static List<PointDTO> getParsedData(String fileName) {
         //.asc only - format: x;y;z\n (e.g. ARSO Lidar DMR)
-        List<Point> pointList = new ArrayList<>();
+        List<PointDTO> pointList = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(new File(fileName)))) {
             String line;
             int id = 1;
@@ -40,7 +37,7 @@ public class Triangulation {
                 double z = Double.parseDouble(coordinatesString[2]);
 
                 if (center.distance3D(new Coordinate(x,y,z)) < radius) {
-                    Point p = new Point(x,y,z, id++);
+                    PointDTO p = new PointDTO(x,y,z, id++);
                     pointList.add(p);
                 }
             }
@@ -52,27 +49,27 @@ public class Triangulation {
     }
 
     //3D surface reconstruction.
-    private static HashSet<Triangle> getTriangulation(List<Point> pointList){
+    private static HashSet<TriangleDTO> getTriangulation(List<PointDTO> pointList){
 
         //Bowyer–Watson algorithm
         int triangleID = 1;
-        List<Triangle> triangulation = new LinkedList<>();
+        List<TriangleDTO> triangulation = new LinkedList<>();
         //super-triangle (http://page.mi.fu-berlin.de/faniry/files/faniry_aims.pdf -> 4.1.)
         double M = getMaximumAbsoluteCoordinate(pointList);
-        Triangle superTriangle = new Triangle(  new Point(3*M, 0,0, -1),//-1
-                new Point(0,3*M, 0, -2),//-2
-                new Point( -3*M, -3*M, 0, -3), -1);//-3
+        TriangleDTO superTriangle = new TriangleDTO(  new PointDTO(3*M, 0,0, -1),//-1
+                new PointDTO(0,3*M, 0, -2),//-2
+                new PointDTO( -3*M, -3*M, 0, -3), -1);//-3
         triangulation.add(superTriangle);
-        HashSet<Triangle> solution = new HashSet<>();
-        for (Point point : pointList) {
+        HashSet<TriangleDTO> solution = new HashSet<>();
+        for (PointDTO point : pointList) {
 //            System.out.println();
             if (point.getId() % 10000 == 0)System.out.println("tocka" + point);
-            HashSet<Edge> edge1stAppearance = new HashSet<>(); //integer counts num of same edges
-            HashSet<Edge> polygon = new HashSet<>();
+            HashSet<EdgeDTO> edge1stAppearance = new HashSet<>(); //integer counts num of same edges
+            HashSet<EdgeDTO> polygon = new HashSet<>();
 
-            Iterator<Triangle> i = triangulation.iterator();
+            Iterator<TriangleDTO> i = triangulation.iterator();
             while (i.hasNext()) {
-                Triangle triangle = i.next();
+                TriangleDTO triangle = i.next();
                 if (inCircle(point, triangle.getPoint1(), triangle.getPoint2(), triangle.getPoint3())) {
                     i.remove();
                     solution.remove(triangle);
@@ -100,8 +97,8 @@ public class Triangulation {
                 }
             }
 
-            for (Edge edge : polygon) {
-                Triangle newTriangle = new Triangle(point, edge.getPoint1(), edge.getPoint2(), triangleID++);
+            for (EdgeDTO edge : polygon) {
+                TriangleDTO newTriangle = new TriangleDTO(point, edge.getPoint1(), edge.getPoint2(), triangleID++);
                 triangulation.add(newTriangle);
                 if (hasNoSuperTrianglePoint(newTriangle, superTriangle)) {
                     solution.add(newTriangle);//assume it is solution, if not remove later
@@ -112,11 +109,11 @@ public class Triangulation {
     }
 
     //Output and Implementation
-    private static void makeOBJ(HashSet<Triangle> triangles, boolean writeToFile) {
+    private static void makeOBJ(HashSet<TriangleDTO> triangles, boolean writeToFile) {
 
         HashMap<Integer, String> vertexMap = new HashMap<>();//id=>"v x y z"
         ArrayList<String> faceList = new ArrayList<>();
-        for (Triangle triangle : triangles) {
+        for (TriangleDTO triangle : triangles) {
 
             if (!vertexMap.containsKey(triangle.getPoint1().getId()))
                 vertexMap.put(triangle.getPoint1().getId(),
@@ -136,7 +133,7 @@ public class Triangulation {
         PrintWriter writer = null;
         if (writeToFile) {
             try {
-                writer = new PrintWriter(Main.LAZ_FOLDER + "output.obj", "UTF-8");
+                writer = new PrintWriter(Main.DATA_FOLDER + "output.obj", "UTF-8");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -162,7 +159,7 @@ public class Triangulation {
         if (writeToFile) writer.close();
     }
 
-    private static boolean hasNoSuperTrianglePoint(Triangle triangle, Triangle superTriangle){
+    private static boolean hasNoSuperTrianglePoint(TriangleDTO triangle, TriangleDTO superTriangle){
         return  (!triangle.getPoint1().equals(superTriangle.getPoint1()) &&
                 !triangle.getPoint1() .equals( superTriangle.getPoint2()) &&
                 !triangle.getPoint1() .equals( superTriangle.getPoint3()) &&
@@ -174,16 +171,16 @@ public class Triangulation {
                 !triangle.getPoint3() .equals( superTriangle.getPoint3()));
     }
 
-    private static double getMaximumAbsoluteCoordinate(List<Point> pointList) {
+    private static double getMaximumAbsoluteCoordinate(List<PointDTO> pointList) {
         double M = 0.0; //absolute maximum
-        for (Point point : pointList) {
+        for (PointDTO point : pointList) {
             if (Math.abs(point.getX()) > M) M = Math.abs(point.getX());
             if (Math.abs(point.getY()) > M) M = Math.abs(point.getY());
         }
         return M;
     }
 
-    private static boolean inCircle(Point pt, Point v1, Point v2, Point v3) {
+    private static boolean inCircle(PointDTO pt, PointDTO v1, PointDTO v2, PointDTO v3) {
 
         double ax = v1.getX();
         double ay = v1.getY();

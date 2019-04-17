@@ -1,13 +1,13 @@
-package com.slemenik.lidar.reconstruction.mountains.triangulation.model;
+package com.slemenik.lidar.reconstruction.mountains.triangulation;
 
-public class Point implements Comparable<Point> {
+public class PointDTO implements Comparable<PointDTO> {
 
     private double x;
     private double y;
     private double z;
     private int id;
 
-    public Point(double x, double y, double z, int id) {
+    public PointDTO(double x, double y, double z, int id) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -16,7 +16,7 @@ public class Point implements Comparable<Point> {
 
     @Override
     public boolean equals(Object obj) {
-        Point p = (Point) obj;
+        PointDTO p = (PointDTO) obj;
         return (p.getX() == this.getX() && p.getY() == this.getY() && p.getZ() == this.getZ());
     }
 
@@ -37,7 +37,7 @@ public class Point implements Comparable<Point> {
     }
 
     @Override
-    public int compareTo(Point o) {
+    public int compareTo(PointDTO o) {
         if (this.getId() > o.getId()) {
             return 1;
         } else {
