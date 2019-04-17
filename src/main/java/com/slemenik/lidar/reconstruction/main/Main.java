@@ -1,29 +1,14 @@
 package com.slemenik.lidar.reconstruction.main;
 
+import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
-import com.slemenik.lidar.reconstruction.mountains.HeightController;
-import org.apache.commons.io.FilenameUtils;
-import org.geotools.data.*;
-import org.geotools.factory.CommonFactoryFinder;
-import org.geotools.feature.FeatureCollection;
-import org.geotools.feature.FeatureIterator;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.MultiPolygon;
-import org.locationtech.jts.math.Vector2D;
-import org.opengis.feature.Feature;
-import org.opengis.feature.Property;
-import org.opengis.feature.simple.SimpleFeature;
-import org.opengis.feature.type.FeatureType;
-import org.opengis.filter.Filter;
-import org.opengis.filter.FilterFactory;
-import org.opengis.geometry.BoundingBox;
 
-import java.io.*;
-import java.util.*;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
+import com.slemenik.lidar.reconstruction.mountains.HeightController;
+import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 
 
 public class Main {
@@ -41,43 +26,14 @@ public class Main {
     public static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
     public static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     public static final boolean CREATE_TEMP_FILE = true;
-    public static final boolean PROCESS_WHOLE_FILE = false;
     public static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
-
-    private static int count = 0;
-    public static List<double[]> points2Insert = new ArrayList<>();
-
 
 
     public static void main(String[] args) {
-        System.out.println("start");
+        System.out.println("start main");
         long startTime = System.nanoTime();
 
-        BuildingController bc = new BuildingController();
-        bc.inputLazFileName = INPUT_FILE_NAME;
-        bc.createTempLazFile = CREATE_TEMP_FILE;
-        bc.tempLazFileName = TEMP_FILE_NAME;
-        bc.boundingBoxFactor = BOUNDING_BOX_FACTOR;
-        bc.createdPointsSpacing = CREATED_POINTS_SPACING;
-        bc.writePointsIndividually = WRITE_POINTS_INDIVIDUALLY;
-        bc.distanceFromOriginalPointThreshold = DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD;
-        bc.considerExistingPoints = CONSIDER_EXISTING_POINTS;
-        bc.outputFileName = OUTPUT_FILE_NAME;
-        bc.shpFileName = DATA_FOLDER + "BU_STAVBE_P.shp";
-        bc.write(TEMP_BOUNDS);
-//        write(TEMP_BOUNDS);
-        System.out.println("Konec racunanja.");
-
-        //Triangulation.triangulate(DMR_FILE_NAME);
-
-        //heightController.readAscFile(DMR_FILE_NAME);
-        points2Insert = bc.points2Insert;
-        try {
-            //String a = getHTML("http://maps.googleapis.com/maps/api/streetview?size=600x400&location=12420+timber+heights,+Austin&key=AIzaSyCkUOdZ5y7hMm0yrcCQoCvLwzdM6M8s5qk");
-            //System.out.println(a);
-        }catch (Exception e) {
-            System.out.println(e);
-        }
+        List<double[]> points2Insert = testBuildingCreation();
 
         if (!points2Insert.isEmpty()) {
             System.out.println("zacetek pisanja... ");
@@ -92,6 +48,40 @@ public class Main {
         long time = TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS);
         System.out.println("Sekunde izvajanja: " + time);
         System.out.println("end");
+    }
+
+    public static List<double[]> testBuildingCreation() {
+        BuildingController bc = new BuildingController();
+        bc.inputLazFileName = INPUT_FILE_NAME;
+        bc.createTempLazFile = CREATE_TEMP_FILE;
+        bc.tempLazFileName = TEMP_FILE_NAME;
+        bc.boundingBoxFactor = BOUNDING_BOX_FACTOR;
+        bc.createdPointsSpacing = CREATED_POINTS_SPACING;
+        bc.writePointsIndividually = WRITE_POINTS_INDIVIDUALLY;
+        bc.distanceFromOriginalPointThreshold = DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD;
+        bc.considerExistingPoints = CONSIDER_EXISTING_POINTS;
+        bc.outputFileName = OUTPUT_FILE_NAME;
+        bc.shpFileName = DATA_FOLDER + "BU_STAVBE_P.shp";
+        bc.write(TEMP_BOUNDS);
+        return bc.points2Insert;
+    }
+
+    public static void testAscFile() {
+        new HeightController().readAscFile(DMR_FILE_NAME);
+    }
+
+    public static void testTriangulation() {
+        Triangulation.triangulate(DMR_FILE_NAME);
+    }
+
+    public static void testGoogleMaps() {
+        ColorController cc = new ColorController();
+        try {
+            String a = cc.getHTML("http://maps.googleapis.com/maps/api/streetview?size=600x400&location=12420+timber+heights,+Austin&key=AIzaSyCkUOdZ5y7hMm0yrcCQoCvLwzdM6M8s5qk");
+            System.out.println(a);
+        }catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
 }

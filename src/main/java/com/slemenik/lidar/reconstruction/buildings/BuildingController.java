@@ -128,7 +128,7 @@ public class BuildingController {
 
 //            writeShpFile( oldFeatureSource,  features, oldFeatureCollection);
 
-
+        System.out.println("Konec racunanja.");
     }
 
     //returns the Coordinate that lies on a line between "start" and "end" and is a "distance" away from start
