@@ -8,9 +8,25 @@ import java.util.Scanner;
 
 public class HeightController {
 
-    public List<double[]> points2Insert;
+    public List<double[]> points2Insert = new ArrayList<>();
 
-    public void readFile(String fileName) {
+    public void readAscFile(String fileName) {
+
+        try {
+            Scanner scanner = new Scanner(new File(fileName));
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                String coordinates[] = line.split(";");
+                double x = Double.parseDouble(coordinates[0]);
+                double y = Double.parseDouble(coordinates[1]);
+                double z = Double.parseDouble(coordinates[2]);
+                this.points2Insert.add(new double[]{x, y, z});
+
+            }
+            scanner.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 

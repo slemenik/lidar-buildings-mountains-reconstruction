@@ -33,9 +33,11 @@ import java.util.concurrent.TimeUnit;
 public class Main {
 
 //    private static final String INPUT_FILE_NAME = ".\\data\\410_137_triglav.laz";
-    private static final String INPUT_FILE_NAME = ".\\data\\462_100_grad.laz";
-    private static final String OUTPUT_FILE_NAME =".\\data\\out.laz";
-    private static String TEMP_FILE_NAME = ".\\data\\temp.laz";
+    private static final String LAZ_FOLDER = ".\\data\\";
+    private static final String INPUT_FILE_NAME = LAZ_FOLDER + "462_100_grad.laz";
+    private static final String OUTPUT_FILE_NAME = LAZ_FOLDER + "out.laz";
+    private static String TEMP_FILE_NAME = LAZ_FOLDER + "temp.laz";
+    private static final String DMR_FILE_NAME = LAZ_FOLDER + "GK1_410_137.asc";
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
     private static final double CREATED_POINTS_SPACING = 0.2;//2.0;//0.2;
@@ -67,11 +69,18 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("start");
         long startTime = System.nanoTime();
-        write();
+        //write();
         System.out.println("Konec racunanja.");
 
-
-//        System.out.println(f.getAbsoluteFile());
+        HeightController hc = new HeightController();
+        hc.readAscFile(DMR_FILE_NAME);
+        points2Insert = hc.points2Insert;
+        try {
+            //String a = getHTML("http://maps.googleapis.com/maps/api/streetview?size=600x400&location=12420+timber+heights,+Austin&key=AIzaSyCkUOdZ5y7hMm0yrcCQoCvLwzdM6M8s5qk");
+            //System.out.println(a);
+        }catch (Exception e) {
+            System.out.println(e);
+        }
 
         if (!points2Insert.isEmpty()) {
             System.out.println("zacetek pisanja... ");
@@ -361,6 +370,7 @@ public class Main {
     //todo raziskuj kaj se zgodi in kako zajezit napako, ko se bbox ne ujema z dejanskim fajlom in se temp ne ustvari
     //todo related zgoraj - kaj če se ne zgeneraira temp file - že iz prve, torej je prazen ali pa se upošteva še prejšnji
     // mogoče dodaj še da se lahko iz dveh laz fajlov skupej naredi naenkrat rezultat
+    // če sredi hiške odprt prostor, pote stene ne smejo bit povezane - npr hiške zravn grada
 
     public static FeatureSource getFeatureSource() {
         File file = new File("./data/BU_STAVBE_P.shp");
