@@ -3,11 +3,12 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
-import com.slemenik.lidar.reconstruction.mountains.HeightController;
+import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 
 
@@ -31,8 +32,10 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("start main");
         long startTime = System.nanoTime();
+        List<double[]> points2Insert = new ArrayList<>();
 
-        List<double[]> points2Insert = testBuildingCreation();
+//        points2Insert = testBuildingCreation();
+
 
         if (!points2Insert.isEmpty()) {
             System.out.println("zacetek pisanja... ");
@@ -65,7 +68,7 @@ public class Main {
     }
 
     public static void testAscFile() {
-        new HeightController().readAscFile(DMR_FILE_NAME);
+        new MountainController().readAscFile(DMR_FILE_NAME);
     }
 
     public static void testTriangulation() {

@@ -8,7 +8,7 @@ import java.util.Scanner;
 
 import static com.slemenik.lidar.reconstruction.buildings.ShpController.getBoundsFromFilename;
 
-public class HeightController {
+public class MountainController {
 
     public List<double[]> points2Insert = new ArrayList<>();
 
