@@ -18,6 +18,7 @@ public class JniLibraryHelpers {
     private native int writeJNIPointList(double[][] pointsArray, String inputFileName, String outputFileName);
     private native double[] getJNIMinMaxHeight(double x, double y, double radius, String inputFileName );
     //private native int createTempLaz(double minX, double miny, double maxX, double maxY, String tempFileName, String inputFileName );
+    private native double[][] getJNIPointArray(String inputFileName);
 
     public void printDouble(double d) {
         System.out.println(d);
@@ -61,6 +62,10 @@ public class JniLibraryHelpers {
 //        return myInstance.createTempLaz(minX, miny, maxX, maxY, tempFileName, inputFileName );
 //    }
 
+    public static double[][] getPointArray(String inputFileName) {
+        JniLibraryHelpers myInstance = new JniLibraryHelpers();
+        return myInstance.getJNIPointArray(inputFileName);
+    }
 
 
 }

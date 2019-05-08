@@ -24,3 +24,8 @@ izračunaj normale
 
 sprehajaš se po normalah in izbereš ravnino na podlagi njih za projekcijo
 
+KAKO NAJDEŠ SOSEDE?
+narediš štiriško drevo, delaš dokler ne najdeš praznih prostorov oz. do neke min value
+in potem te prazni prostori so v enem kvadratu, in vsi prostori ki se dotikajo tega so robne točke
+- v bistvu narediš diskreten grid
+

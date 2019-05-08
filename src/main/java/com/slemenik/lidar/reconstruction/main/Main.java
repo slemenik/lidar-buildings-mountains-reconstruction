@@ -4,6 +4,7 @@ import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -16,7 +17,7 @@ public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    private static final String INPUT_FILE_NAME = DATA_FOLDER + "462_100_grad.laz";
+    private static final String INPUT_FILE_NAME = DATA_FOLDER + "zid krog.laz";
     private static final String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
@@ -32,10 +33,7 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("start main");
         long startTime = System.nanoTime();
-        List<double[]> points2Insert = new ArrayList<>();
-
-//        points2Insert = testBuildingCreation();
-
+        List<double[]> points2Insert = mainTest();
 
         if (!points2Insert.isEmpty()) {
             System.out.println("zacetek pisanja... ");
@@ -50,6 +48,19 @@ public class Main {
         long time = TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS);
         System.out.println("Sekunde izvajanja: " + time);
         System.out.println("end");
+    }
+
+    public static List<double[]> mainTest() {
+
+        double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+//        for (double[] arrEl: arr) {
+//            System.out.println(String.format("%f %f %f", arrEl[0], arrEl[1], arrEl[2] ));
+//        }
+
+        System.out.println(String.format("%f %f %f", arr[12][0], arr[12][1], arr[12][2] ));
+        System.out.println(arr.length);
+
+        return new ArrayList<>(Arrays.asList(arr));
     }
 
     public static List<double[]> testBuildingCreation() {
