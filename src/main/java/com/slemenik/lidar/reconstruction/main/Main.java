@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
 import com.slemenik.lidar.reconstruction.mountains.MountainController;
+
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 
 
@@ -17,18 +18,18 @@ public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    private static final String INPUT_FILE_NAME = DATA_FOLDER + "zid krog.laz";
+    private static final String INPUT_FILE_NAME = DATA_FOLDER + "triglav krog projekcija.laz";
     private static final String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
-    private static final double CREATED_POINTS_SPACING = 0.2;//2.0;//0.2;
+    private static final double CREATED_POINTS_SPACING = 0.5;//2.0;//0.2;
     private static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
     private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
     private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
-
+    private static final int COLOR = 3;
 
     public static void main(String[] args) {
         System.out.println("start main");
@@ -38,7 +39,7 @@ public class Main {
         if (!points2Insert.isEmpty()) {
             System.out.println("zacetek pisanja... ");
             double[][] pointListDoubleArray = points2Insert.toArray(new double[][]{});
-            int returnValue = JniLibraryHelpers.writePointList(pointListDoubleArray, INPUT_FILE_NAME, OUTPUT_FILE_NAME);
+            int returnValue = JniLibraryHelpers.writePointList(pointListDoubleArray, INPUT_FILE_NAME, OUTPUT_FILE_NAME, COLOR);
             System.out.println(returnValue);
         }
 
@@ -52,15 +53,20 @@ public class Main {
 
     public static List<double[]> mainTest() {
 
+
+
+        List<double[]> arr = testMountains();
+        return arr;
+//        return new ArrayList<double[]>(Arrays.asList(arr));
+//        return new ArrayList<>();
+
+
+    }
+
+    public static List<double[]> testMountains() {
+        MountainController mc = new MountainController();
         double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
-//        for (double[] arrEl: arr) {
-//            System.out.println(String.format("%f %f %f", arrEl[0], arrEl[1], arrEl[2] ));
-//        }
-
-        System.out.println(String.format("%f %f %f", arr[12][0], arr[12][1], arr[12][2] ));
-        System.out.println(arr.length);
-
-        return new ArrayList<>(Arrays.asList(arr));
+        return mc.fillHoles(arr, CREATED_POINTS_SPACING);
     }
 
     public static List<double[]> testBuildingCreation() {

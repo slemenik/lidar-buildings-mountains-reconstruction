@@ -15,7 +15,7 @@ public class JniLibraryHelpers {
     }
 
     private native void writeJNIPoint(double x, double y, double z);
-    private native int writeJNIPointList(double[][] pointsArray, String inputFileName, String outputFileName);
+    private native int writeJNIPointList(double[][] pointsArray, String inputFileName, String outputFileName, int classification);
     private native double[] getJNIMinMaxHeight(double x, double y, double radius, String inputFileName );
     //private native int createTempLaz(double minX, double miny, double maxX, double maxY, String tempFileName, String inputFileName );
     private native double[][] getJNIPointArray(String inputFileName);
@@ -36,10 +36,10 @@ public class JniLibraryHelpers {
                 {4.0,44.0,444.0},
                 {5.0,55.0,555.0}
         };
-        return writePointList(list, inputFileName, outputFileName);
+        return writePointList(list, inputFileName, outputFileName, 7);
     }
 
-    public static Integer writePointList(double[][] list, String inputFileName, String outputFileName) {
+    public static Integer writePointList(double[][] list, String inputFileName, String outputFileName, int intColor) {
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         System.out.println("klic funkcije writeJNIPointList()");
 
@@ -47,7 +47,7 @@ public class JniLibraryHelpers {
 //        for (int i = 0; i<list.length;i++) {
 //            System.out.println(new Coordinate(list[i][0],  list[i][1], list[i][2]));
 //        }
-        return myInstance.writeJNIPointList(list,inputFileName, outputFileName);
+        return myInstance.writeJNIPointList(list,inputFileName, outputFileName, intColor);
     }
 
     public static double[] getMinMaxHeight(double x, double y, double threshold, String inputFileName) {
