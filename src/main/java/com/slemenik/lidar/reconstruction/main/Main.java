@@ -4,7 +4,6 @@ import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -12,6 +11,7 @@ import com.slemenik.lidar.reconstruction.buildings.BuildingController;
 import com.slemenik.lidar.reconstruction.mountains.MountainController;
 
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
+
 
 
 public class Main {
@@ -29,7 +29,7 @@ public class Main {
     private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
     private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
-    private static final int COLOR = 3;
+    private static final int COLOR = 4/*-zelena*/;//2-rjava;//3;
 
     public static void main(String[] args) {
         System.out.println("start main");
@@ -53,10 +53,20 @@ public class Main {
 
     public static List<double[]> mainTest() {
 
+        double[][] arr = JniLibraryHelpers.getPointArray( DATA_FOLDER+ "out2.laz"/*INPUT_FILE_NAME*/);
+        MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
+
+        boolean[][] field = mc.getField(arr);
+
+        boolean[][] newField = mc.growthDistance(field); //boundary
+//        boolean[][] newField = field;
 
 
-        List<double[]> arr = testMountains();
-        return arr;
+        return mc.getPointsFromField(newField, true);
+
+
+//        List<double[]> arr2 = testMountains();
+//        return arr2;
 //        return new ArrayList<double[]>(Arrays.asList(arr));
 //        return new ArrayList<>();
 
@@ -64,9 +74,9 @@ public class Main {
     }
 
     public static List<double[]> testMountains() {
-        MountainController mc = new MountainController();
         double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
-        return mc.fillHoles(arr, CREATED_POINTS_SPACING);
+        MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
+        return mc.fillHoles(arr);
     }
 
     public static List<double[]> testBuildingCreation() {

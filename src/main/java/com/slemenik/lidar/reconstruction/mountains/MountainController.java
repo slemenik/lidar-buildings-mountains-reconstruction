@@ -1,5 +1,7 @@
 package com.slemenik.lidar.reconstruction.mountains;
 
+import com.slemenik.lidar.reconstruction.main.QuadTree;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -10,7 +12,17 @@ import static com.slemenik.lidar.reconstruction.buildings.ShpController.getBound
 
 public class MountainController {
 
+    public double minX, maxX, minY, maxY;
+    public double pointsSpace;
+
     public List<double[]> points2Insert = new ArrayList<>();
+
+    public MountainController(double[][] arr, double pointsSpace) {
+        setBounds(arr);
+        this.pointsSpace = pointsSpace;
+    }
+
+    public MountainController(){}
 
     public void readAscFile(String fileName) {
 
@@ -62,13 +74,10 @@ public class MountainController {
         }
     }
 
-    private static boolean[][] initField(double minX, double maxX, double minY, double maxY, double pointSpace) {
+    public static boolean[][] initField(double minX, double maxX, double minY, double maxY, double pointSpace) {
 
 
         double a = maxX - minX;
-        System.out.println(a);
-        System.out.println(pointSpace);
-        System.out.println(a/pointSpace);
 //        System.out.println(maxY - minY);
         int dimX = (int) ((maxX - minX) / pointSpace);
         int dimY = (int) ((maxY - minY) / pointSpace);
@@ -86,10 +95,10 @@ public class MountainController {
         return ((double) x) * pointSpace + min;
     }
 
-    public List<double[]> fillHoles(double[][]  arr, double pointsSpace) {
+    public void setBounds(double[][] arr) {
 
         int i = 0;
-        QuadTree<Integer> q = new QuadTree<>();
+//        QuadTree<Integer> q = new QuadTree<>();
         double minX = Integer.MAX_VALUE;
         double maxX = 0;
         double minY = Integer.MAX_VALUE;
@@ -97,7 +106,7 @@ public class MountainController {
         for (double[] arrEl: arr) {
             arr[i][0] = 0;
 //            System.out.println(String.format("%f %f %f", arrEl[0], arrEl[1], arrEl[2] ));
-            q.place(arr[i][1],arr[i][2], i);
+//            q.place(arr[i][1],arr[i][2], i);
 
 
             maxX = Double.max(maxX, arr[i][1] );
@@ -107,13 +116,31 @@ public class MountainController {
             i++;
         }
 
-
-
-        boolean[][] field = initField(minX,maxX,minY,maxY,pointsSpace);
         System.out.println("minX " + minX);
         System.out.println("maxX " + maxX);
         System.out.println("minY " + minY);
         System.out.println("maxY " + maxY);
+
+        this.maxX = maxX;
+        this.minX = minX;
+        this.maxY = maxY;
+        this.minY = minY;
+
+//        return new double[]{minX, maxX, minY, maxX};
+
+    }
+
+    public boolean[][] getField(double[][]  arr) {
+
+
+//        double[] bounds = getBounds(arr);
+//        double minX = bounds[0];
+//        double maxX = bounds[1];
+//        double minY = bounds[2];
+//        double maxY = bounds[3];
+
+        boolean[][] field = initField(minX, maxX, minY, maxY, pointsSpace);
+
         System.out.println(field.length);
         System.out.println(field[0].length);
 
@@ -122,32 +149,27 @@ public class MountainController {
         double temp = 0;
         try {
             for (double[] arrEl : arr) {
-                temp = arrEl[1];
-                indexX = Integer.min(point2Index(arrEl[1], minX, pointsSpace),field.length-1) ;
-                indexY = Integer.min(point2Index(arrEl[2], minY, pointsSpace), field[0].length-1);
-                field[indexX][indexY] = true;
+                temp = arrEl[1]; //TODO temp - zbriši temp, arrEl je hardcodiran, naredi da nebo
+                indexX = Integer.min(point2Index(arrEl[1], minX, pointsSpace), field.length - 1);
+                indexY = Integer.min(point2Index(arrEl[2], minY, pointsSpace), field[0].length - 1);
+                field[indexX][indexY] = true; //points exists
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("error");
             System.out.println(indexX);
             System.out.println(indexY);
             System.out.println(temp);
         }
 
-        List<double[]> result = new ArrayList<>();
-        for (int x = 0; x<field.length; x++) {
-            double newX = index2Point(x, minX, pointsSpace);
-            for (int y = 0; y<field[0].length; y++) {
-                double newY = index2Point(y, minY, pointsSpace);
-                if (field[x][y] == false) {
-                    result.add(new double[]{0.0, newX, newY});//temp
-                }
+        return field;
 
-            }
-        }
+//        return getPointsFromField(field, minX, minY, pointsSpace);
+    }
 
-        return result;
-
+    public List<double[]> fillHoles(double[][]  arr) {
+        boolean[][] field = getField(arr);
+        return getPointsFromField(field, false);
+    }
 
 
 //        PrintStream printStream;
@@ -189,7 +211,225 @@ public class MountainController {
 //        }
 //        return q;
 
-//        
+//
+
+    public List<double[]> getPointsFromField(boolean[][] field, boolean writeWhenBoolean) {
+        List<double[]> result = new ArrayList<>();
+        for (int x = 0; x<field.length; x++) {
+            double newX = index2Point(x, minX, pointsSpace);
+            for (int y = 0; y<field[0].length; y++) {
+                double newY = index2Point(y, minY, pointsSpace);
+                if (field[x][y] == writeWhenBoolean) {
+                    result.add(new double[]{0.0, newX, newY});//temp, because x = 0, y = x, z = y
+                }
+
+            }
+        }
+        return result;
     }
+
+    public boolean [][] growthDistance(boolean [][] field) {
+
+        int K = 2;
+        boolean [][] newField = new boolean[field.length][field[0].length];
+
+        int firstX = -1;
+        int firstY = -1;
+
+        //get first point
+        for (int i = 0; i<field.length; i++) {
+            for (int j = 0; j < field[0].length; j++) {
+                if (field[i][j]) {
+                    firstX = i;
+                    firstY = j;
+                    break;
+                }
+            }
+            if (firstX > -1 && firstY > -1) {
+                break;
+            }
+        }
+
+        int pX = firstX;
+        int pY = firstY;
+
+        int nextX = -1;
+        int nextY = -1;
+        int prevX = -1;
+        int prevY = -1;
+
+        boolean firstRound = true;
+        int count = 0;
+
+        boolean stop = false;
+        while (!stop) {
+            boolean find = stop;
+            int i = 1;
+            while (i <= K && !find) {
+
+                List<int[]> rn = RN8(pX, pY, prevX, prevY, i, field.length, field[0].length);
+                i++; //?
+                for (int[] q : rn) {
+                    int qX = q[0];
+                    int qY = q[1];
+                    if (!field[qX][qY]) {
+                        continue; //current field are not a point, but are empty, so we skip it
+                    }
+                    if (is8NeighborhoodEmpty(field, qX, qY)) {
+                         prevX = pX;
+                         prevY = pY;
+
+                         nextX = qX;
+                         nextY = qY;
+
+                         find = true;
+                         break; //break for RN
+                    } //end if
+                } //end for
+            } //end while
+            if (pX == firstX && pY == firstY && !firstRound) {
+                stop = true;
+            } else {
+                pX = nextX;
+                pY = nextY;
+                newField[pX][pY] = true;
+                firstRound = false;
+                count++;
+            }
+        }// end while
+        System.out.println("count " + count);
+        return newField;
+    }
+
+    private static boolean is4NeighborhoodEmpty(boolean [][] field, int x, int y) {
+        return (x + 1 >= field.length
+                || x - 1 < 0
+                || y + 1 >= field[0].length
+                || y - 1 < 0 // if index out of bounds, it is boundary
+                || !field[x + 1][y])
+                || !field[x - 1][y]
+                || !field[x][y + 1]
+                || !field[x][y - 1];
+
+    }
+
+    private static boolean is8NeighborhoodEmpty(boolean [][] field, int x, int y) {
+        return is4NeighborhoodEmpty( field, x, y) ||
+                (x + 1 < field.length && y + 1 < field[0].length && !field[x + 1][y+1])
+                || (x - 1 >= 0 && y - 1 >= 0 && !field[x - 1][y-1])
+                || (x + 1 < field.length && y - 1 >= 0 && !field[x+1][y-1])
+                || (x - 1 >= 0 && y + 1 < field[0].length && !field[x-1][y+1]);
+
+    }
+
+    private static List<int[]> RN4(int pX, int pY, int prevX, int prevY, int i) {
+        return null;
+    }
+
+    private enum Direction {
+        RIGHT,
+        DOWN,
+        LEFT,
+        UP
+    }
+
+    public static List<int[]> RN8(int pX, int pY, int prevX, int prevY, int i, int lengthX, int lengthY) {
+        List<int[]> result = new ArrayList<>();
+        if (prevX == -1 || prevY == -1) {
+            prevX = Integer.max(pX - i, 0);
+            prevY = Integer.max(pY - i, 0);
+        }
+//
+        Direction direction;
+        int currX, currY;
+
+        if (prevY < pY && prevX == pX) { //south
+            direction = Direction.LEFT;
+            currX = pX;
+            currY = pY-i;
+        } else if (prevY < pY && prevX < pX) { //southwest
+            direction = Direction.UP;
+            currX = pX-i;
+            currY = pY-i;
+        } else if (prevY == pY && prevX < pX) { //west
+            direction = Direction.UP;
+            currX = pX-i;
+            currY = pY;
+        } else if (prevY > pY && prevX < pX) { //northwest
+            direction = Direction.RIGHT;
+            currX = pX-i;
+            currY = pY+i;
+        } else if (prevY > pY && prevX == pX) { //north
+            direction = Direction.RIGHT;
+            currX = pX;
+            currY = pY+i;
+        } else if (prevY > pY && prevX > pX) { //northeast
+            direction = Direction.DOWN;
+            currX = pX+i;
+            currY = pY+i;
+        } else if (prevY == pY && prevX > pX) { //east
+            direction = Direction.DOWN;
+            currX = pX+i;
+            currY = pY;
+        } else if (prevY < pY && prevX > pX) { //southeast
+            direction = Direction.LEFT;
+            currX = pX+i;
+            currY = pY-i;
+        } else if (prevX == pX && prevY == pY) {
+            direction = Direction.UP;
+            currX = pX;
+            currY = pY;
+        } else {
+
+            System.out.println("impossible");
+            System.out.println(String.format("prevX %d, prevY %d, px %d, py %d", prevX,  prevY, pX, pY));
+            return null;
+        }
+
+        int firstX = currX;
+        int firstY = currY;
+
+        while (result.size() < 3 || (firstX != currX || firstY != currY)) { // The  k-ring  neighborhood  of  p  contains  8k points
+
+            if (pX == currX && pY == currY && result.size() > 0) {
+                result.remove(result.size()-1);
+                //continue; // somehow we are on the edge and we got current p in our k-ring, so we remove it
+            }
+
+            if (direction == Direction.RIGHT) {
+                if (currX + 1 > pX + i || currX + 1 >= lengthX) {
+                    direction = Direction.DOWN;
+                } else {
+                    currX++;
+                    result.add(new int[]{currX, currY});
+                }
+            } else if (direction == Direction.DOWN){
+                if (currY - 1 < pY - i || currY - 1 < 0) {
+                    direction = Direction.LEFT;
+                } else {
+                    currY--;
+                    result.add(new int[]{currX, currY});
+                }
+            }
+            else if (direction == Direction.LEFT) {
+                if (currX - 1 < pX - i || currX - 1 < 0) {
+                    direction = Direction.UP;
+                } else {
+                    currX--;
+                    result.add(new int[]{currX, currY});
+                }
+            } else if(direction == Direction.UP) {
+                if (currY + 1 > pY + i || currY + 1 >= lengthY) {
+                    direction = Direction.RIGHT;
+                } else {
+                    currY++;
+                    result.add(new int[]{currX, currY});
+                }
+            }
+        }
+        return result;
+    }
+
+
 
 }
