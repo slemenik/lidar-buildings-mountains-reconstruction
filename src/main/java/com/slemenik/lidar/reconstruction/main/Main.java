@@ -3,7 +3,6 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -18,7 +17,7 @@ public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    private static final String INPUT_FILE_NAME = DATA_FOLDER + "triglav krog projekcija.laz";
+    private static final String INPUT_FILE_NAME = DATA_FOLDER + "out2.laz";
     private static final String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
@@ -53,23 +52,27 @@ public class Main {
 
     public static List<double[]> mainTest() {
 
-        double[][] arr = JniLibraryHelpers.getPointArray( DATA_FOLDER+ "out2.laz"/*INPUT_FILE_NAME*/);
-        MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
-
-        boolean[][] field = mc.getField(arr);
-
-        boolean[][] newField = mc.growthDistance(field); //boundary
-//        boolean[][] newField = field;
 
 
-        return mc.getPointsFromField(newField, true);
-
-
-//        List<double[]> arr2 = testMountains();
-//        return arr2;
+        List<double[]> arr2 = testMountains();
+        return arr2;
 //        return new ArrayList<double[]>(Arrays.asList(arr));
 //        return new ArrayList<>();
 
+
+    }
+
+    public static List<double[]> testBoundary() {
+        double[][] arr = JniLibraryHelpers.getPointArray( INPUT_FILE_NAME);
+        MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
+
+        boolean[][] field = mc.getBooleanPointField(arr);
+
+        boolean[][] newField = mc.getBoundaryField(field);
+//        boolean[][] newField = field;
+
+
+        return mc.getPointsFromFieldArray(newField, true);
 
     }
 

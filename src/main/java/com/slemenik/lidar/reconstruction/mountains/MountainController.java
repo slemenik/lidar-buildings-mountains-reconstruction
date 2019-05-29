@@ -1,7 +1,5 @@
 package com.slemenik.lidar.reconstruction.mountains;
 
-import com.slemenik.lidar.reconstruction.main.QuadTree;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -130,7 +128,8 @@ public class MountainController {
 
     }
 
-    public boolean[][] getField(double[][]  arr) {
+    /*each field is true if point exists*/
+    public boolean[][] getBooleanPointField(double[][]  arr) {
 
 
 //        double[] bounds = getBounds(arr);
@@ -163,12 +162,87 @@ public class MountainController {
 
         return field;
 
-//        return getPointsFromField(field, minX, minY, pointsSpace);
+//        return getPointsFromFieldArray(field, minX, minY, pointsSpace);
     }
 
     public List<double[]> fillHoles(double[][]  arr) {
-        boolean[][] field = getField(arr);
-        return getPointsFromField(field, false);
+        boolean[][] fieldAllPoints = getBooleanPointField(arr);
+        boolean[][] boundaryField = getBoundaryField(fieldAllPoints);
+
+        List<int[]> pointsToInsert = new ArrayList<>();
+
+       for (int i = 0; i< fieldAllPoints.length; i++) {
+           for (int j = 0; j < fieldAllPoints[i].length; j++) {
+               if (fieldAllPoints[i][j]) { //point already exists, ignore it
+                   continue;
+               } else {
+                   //we check if it is inside boundary - it has a boundary point somewhere bellow, above, left AND right
+
+                   //check up
+                   int tempIndex = j;
+                   boolean boundaryFound = false;
+                   while (tempIndex < fieldAllPoints[0].length) {
+                       if (boundaryField[i][tempIndex]) { //we have reached the boundary point
+                           boundaryFound = true;
+                           break;
+                       }
+                       tempIndex++;
+                   }
+                   if (!boundaryFound) {// point it outside boundary, we ignore it
+                       continue;
+                   }
+
+                   //check down
+                   tempIndex = j;
+                   boundaryFound = false;
+                   while (tempIndex >= 0 ) {
+                       if (boundaryField[i][tempIndex]) {
+                           boundaryFound = true; //we have reached the boundary point
+                           break;
+                       }
+                       tempIndex--;
+                   }
+                   if (!boundaryFound) {// point it outside boundary, we ignore it
+                       continue;
+                   }
+
+
+                   //check right
+                   tempIndex = i;
+                   boundaryFound = false;
+                   while (tempIndex < fieldAllPoints.length ) {
+                       if (boundaryField[tempIndex][j]) {
+                           boundaryFound = true; //we have reached the boundary point
+                           break;
+                       }
+                       tempIndex++;
+                   }
+                   if (!boundaryFound) {// point it outside boundary, we ignore it
+                       continue;
+                   }
+
+                   //check left
+                   tempIndex = i;
+                   boundaryFound = false;
+                   while (tempIndex >= 0 ) {
+                       if (boundaryField[tempIndex][j]) {
+                           boundaryFound = true; //we have reached the boundary point
+                           break;
+                       }
+                       tempIndex--;
+                   }
+                   if (!boundaryFound) {// point it outside boundary, we ignore it
+                       continue;
+                   }
+
+                   //it is inside boundary, we add it
+                   pointsToInsert.add(new int[]{i, j});
+               }
+           } //end for j
+       } // end for i
+
+        return getPointsFromFieldList(pointsToInsert);
+//        return getPointsFromFieldArray(fieldAllPoints, false);
     }
 
 
@@ -213,7 +287,7 @@ public class MountainController {
 
 //
 
-    public List<double[]> getPointsFromField(boolean[][] field, boolean writeWhenBoolean) {
+    public List<double[]> getPointsFromFieldArray(boolean[][] field, boolean writeWhenBoolean) {
         List<double[]> result = new ArrayList<>();
         for (int x = 0; x<field.length; x++) {
             double newX = index2Point(x, minX, pointsSpace);
@@ -228,7 +302,18 @@ public class MountainController {
         return result;
     }
 
-    public boolean [][] growthDistance(boolean [][] field) {
+    public List<double[]> getPointsFromFieldList(List<int[]> fieldsWithPoinList) {
+        List<double[]> result = new ArrayList<>();
+        for (int[] fieldIndex : fieldsWithPoinList) {
+            double newX = index2Point(fieldIndex[0], minX, pointsSpace);
+            double newY = index2Point(fieldIndex[1], minY, pointsSpace);
+            result.add(new double[]{0.0, newX, newY});//temp, because x = 0, y = x, z = y
+        }
+        return result;
+    }
+
+
+    public boolean [][] getBoundaryField(boolean [][] field) { //growth distance algorithm
 
         int K = 2;
         boolean [][] newField = new boolean[field.length][field[0].length];
