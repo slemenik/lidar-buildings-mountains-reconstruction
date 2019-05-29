@@ -63,6 +63,7 @@ public class JniLibraryHelpers {
 //    }
 
     public static double[][] getPointArray(String inputFileName) {
+        System.out.println("method JNI.getPointArray(), filename: " + inputFileName);
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         return myInstance.getJNIPointArray(inputFileName);
     }

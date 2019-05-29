@@ -14,8 +14,9 @@ TODO:
 // mogoče dodaj še da se lahko iz dveh laz fajlov skupej naredi naenkrat rezultat
 // če sredi hiške odprt prostor, pote stene ne smejo bit povezane - npr hiške zravn grada
 
-POVRŠJE:
-- namesto da hraniš celoten field in imaš true/false, raje hrani koordinate kjer je true recimo
+// POVRŠJE:
+//- namesto da hraniš celoten field in imaš true/false, raje hrani koordinate kjer je true recimo
+// - moogoče uporabi algoritem v članku, za zaznavanje notranjih lukenj in takoj nato sproti filaš in dodajaš točke na konec seznama (ni mus, je le izboljšava)
 
 POSTOPEK ZA ISKANJE LUKENJ V GORAH:
 sprehajaj se po dmrju

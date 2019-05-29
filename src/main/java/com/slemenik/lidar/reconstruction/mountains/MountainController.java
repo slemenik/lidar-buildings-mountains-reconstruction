@@ -14,6 +14,7 @@ public class MountainController {
     public double pointsSpace;
 
     public List<double[]> points2Insert = new ArrayList<>();
+    public double[][] thirdDimInfo;
 
     public MountainController(double[][] arr, double pointsSpace) {
         setBounds(arr);
@@ -102,7 +103,7 @@ public class MountainController {
         double minY = Integer.MAX_VALUE;
         double maxY = 0;
         for (double[] arrEl: arr) {
-            arr[i][0] = 0;
+            //arr[i][0] = 0; //temp
 //            System.out.println(String.format("%f %f %f", arrEl[0], arrEl[1], arrEl[2] ));
 //            q.place(arr[i][1],arr[i][2], i);
 
@@ -131,7 +132,7 @@ public class MountainController {
     /*each field is true if point exists*/
     public boolean[][] getBooleanPointField(double[][]  arr) {
 
-
+        System.out.println("method getBooleanPointField()");
 //        double[] bounds = getBounds(arr);
 //        double minX = bounds[0];
 //        double maxX = bounds[1];
@@ -139,6 +140,7 @@ public class MountainController {
 //        double maxY = bounds[3];
 
         boolean[][] field = initField(minX, maxX, minY, maxY, pointsSpace);
+        this.thirdDimInfo = new double[field.length][field[0].length];
 
         System.out.println(field.length);
         System.out.println(field[0].length);
@@ -152,6 +154,7 @@ public class MountainController {
                 indexX = Integer.min(point2Index(arrEl[1], minX, pointsSpace), field.length - 1);
                 indexY = Integer.min(point2Index(arrEl[2], minY, pointsSpace), field[0].length - 1);
                 field[indexX][indexY] = true; //points exists
+                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[0] : (arrEl[0]+thirdDimInfo[indexX][indexY])/2; //average
             }
         } catch (Exception e) {
             System.out.println("error");
@@ -166,6 +169,7 @@ public class MountainController {
     }
 
     public List<double[]> fillHoles(double[][]  arr) {
+        System.out.println("method fillHoles()");
         boolean[][] fieldAllPoints = getBooleanPointField(arr);
         boolean[][] boundaryField = getBoundaryField(fieldAllPoints);
 
@@ -294,7 +298,7 @@ public class MountainController {
             for (int y = 0; y<field[0].length; y++) {
                 double newY = index2Point(y, minY, pointsSpace);
                 if (field[x][y] == writeWhenBoolean) {
-                    result.add(new double[]{0.0, newX, newY});//temp, because x = 0, y = x, z = y
+                    result.add(new double[]{ 410537.0, newX, newY});//temp, because x = 0, y = x, z = y
                 }
 
             }
@@ -302,12 +306,45 @@ public class MountainController {
         return result;
     }
 
-    public List<double[]> getPointsFromFieldList(List<int[]> fieldsWithPoinList) {
+    public static double getAverageThirdDim(double [][] thirdDimInfo, int indexX, int indexY) {
+        //we dont need to check bounds, because this point cannot be boundary point
+        double averageSum = 0;
+        int count = 0;
+        for (int i = indexX-1; i<= indexX+1; i++) {
+            for (int j = indexY-1; j<=indexY+1; j++) {
+                if (!(i == indexX && j == indexY) && thirdDimInfo[i][j] != 0) {
+                    averageSum += thirdDimInfo[i][j];
+                    count++;
+                }
+            }
+        }
+        return count == 0 ? -1 : averageSum/count;
+
+    }
+
+    public List<double[]> getPointsFromFieldList(List<int[]> fieldsWithPointList) {
+        System.out.println("method getPointsFromFieldList()");
         List<double[]> result = new ArrayList<>();
-        for (int[] fieldIndex : fieldsWithPoinList) {
-            double newX = index2Point(fieldIndex[0], minX, pointsSpace);
-            double newY = index2Point(fieldIndex[1], minY, pointsSpace);
-            result.add(new double[]{0.0, newX, newY});//temp, because x = 0, y = x, z = y
+        int i = 0;
+        int requiredSize = fieldsWithPointList.size();
+        while(result.size() < requiredSize) {
+            int[] fieldIndex = fieldsWithPointList.get(i);
+            i++;
+
+            int indexX = fieldIndex[0];
+            int indexY = fieldIndex[1];
+            double newX = index2Point(indexX, minX, pointsSpace);
+            double newY = index2Point(indexY, minY, pointsSpace);
+            double newTemp = getAverageThirdDim(thirdDimInfo, indexX, indexY);
+
+            if (newTemp == -1) { //no average found, we will calculate later
+                fieldsWithPointList.add(fieldIndex);
+            } else {
+                thirdDimInfo[indexX][indexY] = newTemp;
+                result.add(new double[]{newTemp, newX, newY});//temp, because x = 0, y = x, z = y
+            }
+            System.out.println("result.size() is " + result.size() + ", must be " + requiredSize);
+
         }
         return result;
     }

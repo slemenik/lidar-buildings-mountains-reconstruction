@@ -28,7 +28,7 @@ public class Main {
     private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
     private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
-    private static final int COLOR = 4/*-zelena*/;//2-rjava;//3;
+    private static final int COLOR = 5/*rumena*/; //4-zelena*/;//2-rjava;//3;
 
     public static void main(String[] args) {
         System.out.println("start main");
@@ -77,6 +77,7 @@ public class Main {
     }
 
     public static List<double[]> testMountains() {
+        System.out.println("method testMountains()");
         double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
         MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
         return mc.fillHoles(arr);
