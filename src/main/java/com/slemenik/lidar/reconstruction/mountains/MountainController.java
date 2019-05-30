@@ -5,15 +5,18 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 import static com.slemenik.lidar.reconstruction.buildings.ShpController.getBoundsFromFilename;
+import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 
 public class MountainController {
 
     public double minX, maxX, minY, maxY;
     public double pointsSpace;
-    public Interpolation interpolation = Interpolation.AVERAGE_8N;
+    public InterpolationController.Interpolation interpolation = Interpolation.AVERAGE_8N;
 
     public List<double[]> points2Insert = new ArrayList<>();
-    public double[][] thirdDimInfo;
+    public double[][] thirdDimInfo; //todo namesto tega hrani raje tabelo objektov, kjer so vse info, tudi npr katere
+                                    //todo vse double točke priapdajo specifičnemu polju, potem nebomo rabili v
+                                    //todo getBooleanPointField() povprečiti thirdDimInfo vrednosti
 
     public MountainController(double[][] arr, double pointsSpace) {
         setBounds(arr);
@@ -297,7 +300,7 @@ public class MountainController {
             for (int y = 0; y<field[0].length; y++) {
                 double newY = index2Point(y, minY, pointsSpace);
                 if (field[x][y] == writeWhenBoolean) {
-                    double newTemp = getThirdDim(thirdDimInfo, x, y, interpolation);
+                    double newTemp = InterpolationController.getThirdDim(thirdDimInfo, x, y, interpolation);
                     result.add(new double[]{ newTemp, newX, newY});//temp, because x = 0, y = x, z = y
                 }
 
@@ -306,94 +309,7 @@ public class MountainController {
         return result;
     }
 
-    public static double getAverageThirdDim(double [][] thirdDimInfo, int indexX, int indexY) {
-        //we dont need to check bounds, because this point cannot be boundary point
-        double averageSum = 0;
-        int count = 0;
-        for (int i = indexX-1; i<= indexX+1; i++) {
-            for (int j = indexY-1; j<=indexY+1; j++) {
-                if (!(i == indexX && j == indexY) && thirdDimInfo[i][j] != 0) {
-                    averageSum += thirdDimInfo[i][j];
-                    count++;
-                }
-            }
-        }
-        return count == 0 ? -1 : averageSum/count;
-    }
 
-    private static double getAverage4NThirdDim(double [][] thirdDimInfo, int indexX, int indexY) {
-        double averageSum = 0;
-        int count = 0;
-        if (thirdDimInfo[indexX+1][indexY] != 0) {
-            averageSum += thirdDimInfo[indexX+1][indexY];
-            count++;
-        }
-        if (thirdDimInfo[indexX-1][indexY] != 0) {
-            averageSum += thirdDimInfo[indexX-1][indexY];
-            count++;
-        }
-        if (thirdDimInfo[indexX][indexY+1] != 0) {
-            averageSum += thirdDimInfo[indexX][indexY+1];
-            count++;
-        }
-        if (thirdDimInfo[indexX][indexY-1] != 0) {
-            averageSum += thirdDimInfo[indexX][indexY-1];
-            count++;
-        }
-        return count == 0 ? -1 : averageSum/count;
-    }
-
-    private static double getNearestThirdDim(double [][] thirdDimInfo, int indexX, int indexY) {
-        return getNearestThirdDim(thirdDimInfo,  indexX,  indexY,  false);
-    }
-
-    private static double getNearestThirdDim(double [][] thirdDimInfo, int indexX, int indexY, boolean randomNeighbour) {
-
-        List<Double> list = new ArrayList<>();
-        for (int i = indexX-1; i<= indexX+1; i++) {
-            for (int j = indexY-1; j<=indexY+1; j++) {
-                if (!(i == indexX && j == indexY) && thirdDimInfo[i][j] != 0) {
-                    if (randomNeighbour) {
-                        list.add(thirdDimInfo[i][j]);
-                    } else {
-                        return thirdDimInfo[i][j];
-                    }
-                }
-            }
-        }
-        if (list.size()>0) {
-            Random rand = new Random();
-            return list.get(rand.nextInt(list.size()));
-        } else {
-            return -1;
-        }
-    }
-
-    public enum Interpolation {
-        NEAREST_N,
-        NEAREST_N_RANDOM,
-        AVERAGE_8N,
-        AVERAGE_4N,
-        CONSTANT
-    }
-
-    private static double getThirdDim(double [][] thirdDimInfo, int indexX, int indexY, Interpolation interpolation) {
-        switch (interpolation) {
-            case NEAREST_N:
-                return getNearestThirdDim(thirdDimInfo, indexX, indexY);
-            case NEAREST_N_RANDOM:
-                return getNearestThirdDim(thirdDimInfo, indexX, indexY, true);
-            case AVERAGE_4N:
-                return getAverage4NThirdDim(thirdDimInfo, indexX, indexY);
-            case AVERAGE_8N:
-                return getAverageThirdDim(thirdDimInfo, indexX, indexY);
-            case CONSTANT:
-                return 1;
-            default:
-                System.out.println("wrong interpolation param");
-                return -2;
-        }
-    }
 
     public List<double[]> getPointsFromFieldList(List<int[]> fieldsWithPointList) {
         System.out.println("method getPointsFromFieldList()");
@@ -408,7 +324,7 @@ public class MountainController {
             int indexY = fieldIndex[1];
             double newX = index2Point(indexX, minX, pointsSpace);
             double newY = index2Point(indexY, minY, pointsSpace);
-            double newTemp = getThirdDim(thirdDimInfo, indexX, indexY, interpolation);
+            double newTemp = InterpolationController.getThirdDim(thirdDimInfo, indexX, indexY, interpolation);
 
             if (newTemp == -1) { //no average found, we will calculate later
                 fieldsWithPointList.add(fieldIndex);
@@ -416,7 +332,7 @@ public class MountainController {
                 thirdDimInfo[indexX][indexY] = newTemp;
                 result.add(new double[]{newTemp, newX, newY});//temp, because x = 0, y = x, z = y
             }
-//            System.out.println("result.size() is " + result.size() + ", must be " + requiredSize);
+            System.out.println("result.size() is " + result.size() + ", must be " + requiredSize);
 
         }
         return result;
