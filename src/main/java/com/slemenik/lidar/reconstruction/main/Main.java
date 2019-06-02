@@ -3,10 +3,12 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
+import com.slemenik.lidar.reconstruction.mountains.InterpolationController;
 import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 
@@ -54,12 +56,14 @@ public class Main {
     public static List<double[]> mainTest() {
 
 
+//        InterpolationController.getBiLiniearThirdDim(null, 0 ,0);
+
 //        double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
 //        MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
 //        mc.interpolation = Interpolation.OWN_VALUE;
 //        return mc.getPointsFromFieldArray(mc.getBooleanPointField(arr), true);
 
-        List<double[]> arr2 = testMountains(Interpolation.AVERAGE_4N);
+        List<double[]> arr2 = testMountains(Interpolation.BIQUADRATIC);
 //        List<double[]> arr2 = testBuildingCreation();
         return arr2;
 //        return new ArrayList<double[]>(Arrays.asList(arr));

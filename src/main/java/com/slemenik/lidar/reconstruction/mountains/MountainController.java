@@ -4,8 +4,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
+//import org.apache.commons.math3.a
+
 import static com.slemenik.lidar.reconstruction.buildings.ShpController.getBoundsFromFilename;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
+import org.apache.commons.lang3.ArrayUtils;
 
 public class MountainController {
 
@@ -325,14 +328,17 @@ public class MountainController {
             double newX = index2Point(indexX, minX, pointsSpace);
             double newY = index2Point(indexY, minY, pointsSpace);
             double newTemp = InterpolationController.getThirdDim(thirdDimInfo, indexX, indexY, interpolation);
-
+//todo tukaj se pri interpolaciji večkrat kličejo ene in iste točke, popravi, npr ko je indexX skos isti, se potem na podlagi tega iste interpolacije računajo
             if (newTemp == -1) { //no average found, we will calculate later
+                System.out.println("no average found");
                 fieldsWithPointList.add(fieldIndex);
             } else {
-                thirdDimInfo[indexX][indexY] = newTemp;
+                if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST}, interpolation )) { //todo explore why
+                    thirdDimInfo[indexX][indexY] = newTemp; // sprotno popravljanje oz dopolnjevanje tretje dimenzije
+                }
                 result.add(new double[]{newTemp, newX, newY});//temp, because x = 0, y = x, z = y
             }
-            System.out.println("result.size() is " + result.size() + ", must be " + requiredSize);
+//            System.out.println("result.size() is " + result.size() + ", must be " + requiredSize);
 
         }
         return result;
