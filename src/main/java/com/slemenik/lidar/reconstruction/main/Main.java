@@ -21,17 +21,17 @@ public class Main {
     public static final String DATA_FOLDER = ".";
 
     private static final String INPUT_FILE_NAME = DATA_FOLDER + "out2.laz";
-    private static final String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
+    private static String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
-    private static final double CREATED_POINTS_SPACING = 0.5;//2.0;//0.2;
+    private static final double CREATED_POINTS_SPACING = 0.6;//2.0;//0.2;
     private static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
     private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
     private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
-    private static final int COLOR = 5; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3;
+    private static final int COLOR = 6; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3;
 
     public static void main(String[] args) {
         System.out.println("start main");
@@ -41,8 +41,9 @@ public class Main {
         if (!points2Insert.isEmpty()) {
             System.out.println("zacetek pisanja... ");
             double[][] pointListDoubleArray = points2Insert.toArray(new double[][]{});
+            System.out.println("Points to write: " + pointListDoubleArray.length);
             int returnValue = JniLibraryHelpers.writePointList(pointListDoubleArray, INPUT_FILE_NAME, OUTPUT_FILE_NAME, COLOR);
-            System.out.println(returnValue);
+            System.out.println("End writing. Points written: " + returnValue);
         }
 
         System.out.println();
@@ -56,14 +57,18 @@ public class Main {
     public static List<double[]> mainTest() {
 
 
-//        InterpolationController.getBiLiniearThirdDim(null, 0 ,0);
+//        System.out.println(InterpolationController.CubicInterpolate(new double[]{1,3,5,13}, 4));
+
+
+
+
 
 //        double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
 //        MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
 //        mc.interpolation = Interpolation.OWN_VALUE;
 //        return mc.getPointsFromFieldArray(mc.getBooleanPointField(arr), true);
 
-        List<double[]> arr2 = testMountains(Interpolation.BIQUADRATIC);
+        List<double[]> arr2 = testMountains(Interpolation.BICUBIC);
 //        List<double[]> arr2 = testBuildingCreation();
         return arr2;
 //        return new ArrayList<double[]>(Arrays.asList(arr));
@@ -88,6 +93,7 @@ public class Main {
 
     public static List<double[]> testMountains(Interpolation interp) {
         System.out.println("method testMountains()");
+        OUTPUT_FILE_NAME = DATA_FOLDER + "triglav4 spacing-"+ CREATED_POINTS_SPACING + " interpolation-"+ interp.toString()+ ".laz";
         double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
         MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
         mc.interpolation = interp;

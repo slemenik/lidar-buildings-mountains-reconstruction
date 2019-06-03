@@ -1,6 +1,6 @@
 package com.slemenik.lidar.reconstruction.mountains;
 
-import org.apache.commons.math3.analysis.interpolation.BicubicInterpolator;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
@@ -119,6 +119,8 @@ public class InterpolationController {
                 return getBiQuadraticThirdDim(thirdDimInfo, indexX, indexY, true);
             case BIQUADRATIC:
                 return getBiQuadraticThirdDim(thirdDimInfo, indexX, indexY, false);
+            case BICUBIC:
+                return getBiCubicThirdDim(thirdDimInfo, indexX, indexY);
             default:
                 System.out.println("wrong interpolation param");
                 return -1;
@@ -166,9 +168,6 @@ public class InterpolationController {
 
     // http://mathonline.wikidot.com/deleted:quadratic-polynomial-interpolation
     private static double interpolateQuadratic(Double[] x, Double[] y, double value)  {
-            double a = (y[0] * (((value - x[1]) * (value - x[2])) / ((x[0] - x[1]) * (x[0] - x[2])))) +
-                    (y[1] * (((value - x[0]) * (value - x[2])) / ((x[1] - x[0]) * (x[1] - x[2])))) +
-                    (y[2] * ((  (value - x[0]) * (value - x[1])) / ((x[2] - x[0]) * (x[2] - x[1]))  ));
 
         if (x.length != y.length || x.length != 3 ) {
             System.out.println("Wrong parameter num");
@@ -296,4 +295,171 @@ public class InterpolationController {
         return (valueX+valueY)/2;
     }
 
+    private static double getBiCubicThirdDim(double[][] thirdDimInfo, int indexX, int indexY) {
+
+        int x = indexX-1;
+        int added = 0;
+        List<Integer> indexXList = new ArrayList<>();
+        while (added < 2) { //we want first and second left neighbour
+            try {
+                if (thirdDimInfo[x][indexY] > 0) {
+                    indexXList.add(x);
+                    added++;
+                }
+                x--;
+            } catch (ArrayIndexOutOfBoundsException e) {
+                //we went beyond field, before we got the second neightbour
+                //set the second neighboour
+                indexXList.add(-1);
+                break;
+            }
+        }
+
+        x = indexX+1;
+        added = 0;
+        while (added < 2) { //we want first and second right neighbour, first two are already in
+            try {
+                if (thirdDimInfo[x][indexY] > 0) {
+                    indexXList.add(x);
+                    added++;
+                }
+                x++;
+            } catch (ArrayIndexOutOfBoundsException e) {
+                indexXList.add(thirdDimInfo.length);
+                break;
+            }
+
+        }
+
+        //indeY
+        int y = indexY-1;
+        added = 0;
+        List<Integer> indexYList = new ArrayList<>();
+        while (added < 2) {
+            try {
+                if (thirdDimInfo[indexX][y] > 0) {
+                    indexYList.add(y);
+                    added++;
+                }
+                y--;
+            } catch (ArrayIndexOutOfBoundsException e) {
+                indexYList.add(-1);
+                break;
+            }
+        }
+
+        y = indexY+1;
+        added = 0;
+        while (added < 2) { //we want first and second right neighbour, first two are already in
+            try {
+                if (thirdDimInfo[indexX][y] > 0) {
+                    indexYList.add(y);
+                    added++;
+                }
+                y++;
+            } catch (ArrayIndexOutOfBoundsException e) {
+                indexYList.add(thirdDimInfo[indexX].length);
+                break;
+            }
+        }
+
+        Collections.sort(indexXList);
+        Collections.sort(indexYList);
+
+        double valueX = CubicInterpolate(getDoubleArrayFromIntList(indexXList), indexXList.stream().map(val -> {
+            if (val == -1) {
+                return 2* (thirdDimInfo[indexXList.get(1)][indexY]) - thirdDimInfo[indexXList.get(2)][indexY];//exterpolate, 2*p1 - p2
+            } else if (val == thirdDimInfo.length) {
+                return 2 * (thirdDimInfo[indexXList.get(2)][indexY]) - thirdDimInfo[indexXList.get(1)][indexY];
+            } else {
+                return thirdDimInfo[val][indexY]; //index not out of bounds
+            }
+        }).toArray(Double[]::new), indexX);
+        double valueY = CubicInterpolate(getDoubleArrayFromIntList(indexYList), indexYList.stream().map(val -> {
+            if (val == -1) {
+                return 2* (thirdDimInfo[indexX][indexYList.get(1)]) - thirdDimInfo[indexX][indexYList.get(2)];
+            } else if (val == thirdDimInfo[indexX].length) {
+                return 2 * (thirdDimInfo[indexX][indexYList.get(2)]) - thirdDimInfo[indexX][indexYList.get(1)];
+            } else {
+                return thirdDimInfo[indexX][val]; //index not out of bounds
+            }
+        }).toArray(Double[]::new), indexY);
+
+//        double valueX = cubicInterpolation(getDoubleArrayFromIntList(indexXList), indexX);
+//        double valueY = cubicInterpolation(getDoubleArrayFromIntList(indexYList), indexY);
+//        return valueY;
+        return (valueX+valueY)/2;
+//        return -1;
+
+
+//        double[][] fvalue = new double[4][4];
+//        for (int i = 0; i<fvalue.length; i++) {
+//            for (int j = 0; j<fvalue[i].length; j++) {
+//                int xx = indexXList.get(i);
+//                int yy = indexYList.get(i);
+//
+//                try {
+//                    fvalue[i][j] = thirdDimInfo[xx][yy];
+//                } catch (ArrayIndexOutOfBoundsException e) {
+//                    if (xx == -1) {
+//                        fvalue[i][j] = thirdDimInfo[0][yy];
+//                    } else if (xx == thirdDimInfo.length) {
+//                        fvalue[i][j] = thirdDimInfo[thirdDimInfo.length-1][yy];
+//                    } else if (yy == -1) {
+//                        fvalue[i][j] = thirdDimInfo[xx][0];
+//                    } else if (yy == thirdDimInfo[xx].length) {
+//                        fvalue[i][j] = thirdDimInfo[xx][thirdDimInfo[xx].length-1];
+//                    } else {
+//                        System.out.println("napaka: " + e);
+//                        return -1;
+//                    }
+//                }
+//            }
+//        }
+//
+//        BicubicInterpolator bi = new BicubicInterpolator();
+//        BicubicInterpolatingFunction function = bi.interpolate(getDoubleArrayFromIntList(indexXList), getDoubleArrayFromIntList(indexYList), fvalue);
+//        return function.value(indexX, indexY);
+    }
+
+    public static double cubicInterpolation(double[] p, double value) {
+        double normalizedValue = (value-p[1])/(p[2]-p[1]); // https://stats.stackexchange.com/questions/70801/how-to-normalize-data-to-0-1-range
+        //https://www.paulinternet.nl/?page=bicubic
+        return p[1] + 0.5 * normalizedValue*(p[2] - p[0] + normalizedValue*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + normalizedValue*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+    }
+
+     public static double CubicInterpolate(
+            double[] points,
+            Double[] values,
+            double mu)
+    {
+
+        mu = (mu-points[1])/(points[2]-points[1]);
+        double y0 = values[0];
+        double y1 = values[1];
+        double y2 = values[2];
+        double y3 = values[3];
+        double a0,a1,a2,a3,mu2;
+
+        //http://paulbourke.net/miscellaneous/interpolation/
+        mu2 = mu*mu;
+        a0 = y3 - y2 - y0 + y1;
+        a1 = y0 - y1 - a0;
+        a2 = y2 - y0;
+        a3 = y1;
+
+//        a0 = -0.5*y0 + 1.5*y1 - 1.5*y2 + 0.5*y3;
+//        a1 = y0 - 2.5*y1 + 2*y2 - 0.5*y3;
+//        a2 = -0.5*y0 + 0.5*y2;
+//        a3 = y1;
+        double a = a0*mu*mu2+a1*mu2+a2*mu+a3;
+        if (a > 411000) {
+            double c = a;
+        }
+        return(a0*mu*mu2+a1*mu2+a2*mu+a3);
+    }
+
+    private static double[] getDoubleArrayFromIntList(List<Integer> list) {
+        return ArrayUtils.toPrimitive(list.stream().map(x -> (double) x).toArray(Double[]::new));
+    }
 }
