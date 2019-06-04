@@ -333,7 +333,7 @@ public class MountainController {
                 System.out.println("no average found");
                 fieldsWithPointList.add(fieldIndex);
             } else {
-                if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST}, interpolation )) { //todo explore why
+                if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE}, interpolation )) { //todo explore why
                     thirdDimInfo[indexX][indexY] = newTemp; // sprotno popravljanje oz dopolnjevanje tretje dimenzije
                 }
                 result.add(new double[]{newTemp, newX, newY});//temp, because x = 0, y = x, z = y

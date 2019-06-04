@@ -4,6 +4,7 @@ import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -13,7 +14,7 @@ import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
-
+import org.apache.commons.lang3.ArrayUtils;
 
 
 public class Main {
@@ -57,7 +58,15 @@ public class Main {
     public static List<double[]> mainTest() {
 
 
-//        System.out.println(InterpolationController.CubicInterpolate(new double[]{1,3,5,13}, 4));
+        Double[] test2 = new Double[]{1D,15D,28d,56d};
+        double[] test = ArrayUtils.toPrimitive(test2);
+        double value = 25.5;
+//
+//        System.out.println(InterpolationController.CubicInterpolate(test,test2, value));
+//        System.out.println(InterpolationController.splineInterpolation(test, value));
+//        System.out.println(InterpolationController.catmullRom(test,test2, value));
+//        System.out.println(InterpolationController.cubicInterpolation(test, value));
+//        System.out.println(InterpolationController.splineInterpolation2(test, value));
 
 
 
@@ -68,12 +77,12 @@ public class Main {
 //        mc.interpolation = Interpolation.OWN_VALUE;
 //        return mc.getPointsFromFieldArray(mc.getBooleanPointField(arr), true);
 
-        List<double[]> arr2 = testMountains(Interpolation.BICUBIC);
+        List<double[]> arr2 = testMountains(Interpolation.SPLINE);
 //        List<double[]> arr2 = testBuildingCreation();
-        return arr2;
-//        return new ArrayList<double[]>(Arrays.asList(arr));
-//        return new ArrayList<>();
+//        List<double[]> arr2 = new ArrayList<>();
+//        List<double[]> arr2 = ArrayList<double[]>(Arrays.asList(arr));
 
+        return arr2;
 
     }
 

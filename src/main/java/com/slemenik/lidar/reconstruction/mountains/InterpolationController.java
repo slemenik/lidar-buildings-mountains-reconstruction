@@ -2,6 +2,7 @@ package com.slemenik.lidar.reconstruction.mountains;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
+import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
 import java.util.ArrayList;
@@ -121,6 +122,8 @@ public class InterpolationController {
                 return getBiQuadraticThirdDim(thirdDimInfo, indexX, indexY, false);
             case BICUBIC:
                 return getBiCubicThirdDim(thirdDimInfo, indexX, indexY);
+            case SPLINE:
+                return getSplineThirdDim(thirdDimInfo, indexX, indexY);
             default:
                 System.out.println("wrong interpolation param");
                 return -1;
@@ -296,6 +299,10 @@ public class InterpolationController {
     }
 
     private static double getBiCubicThirdDim(double[][] thirdDimInfo, int indexX, int indexY) {
+        return getBiCubicThirdDim( thirdDimInfo, indexX, indexY, false);
+    }
+
+    private static double getBiCubicThirdDim(double[][] thirdDimInfo, int indexX, int indexY, boolean spline) {
 
         int x = indexX-1;
         int added = 0;
@@ -374,7 +381,7 @@ public class InterpolationController {
             } else {
                 return thirdDimInfo[val][indexY]; //index not out of bounds
             }
-        }).toArray(Double[]::new), indexX);
+        }).toArray(Double[]::new), indexX, spline);
         double valueY = CubicInterpolate(getDoubleArrayFromIntList(indexYList), indexYList.stream().map(val -> {
             if (val == -1) {
                 return 2* (thirdDimInfo[indexX][indexYList.get(1)]) - thirdDimInfo[indexX][indexYList.get(2)];
@@ -383,7 +390,7 @@ public class InterpolationController {
             } else {
                 return thirdDimInfo[indexX][val]; //index not out of bounds
             }
-        }).toArray(Double[]::new), indexY);
+        }).toArray(Double[]::new), indexY, spline);
 
 //        double valueX = cubicInterpolation(getDoubleArrayFromIntList(indexXList), indexX);
 //        double valueY = cubicInterpolation(getDoubleArrayFromIntList(indexYList), indexY);
@@ -428,13 +435,23 @@ public class InterpolationController {
         return p[1] + 0.5 * normalizedValue*(p[2] - p[0] + normalizedValue*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + normalizedValue*(3.0*(p[1] - p[2]) + p[3] - p[0])));
     }
 
+    public static double CubicInterpolate(
+            double[] points,
+            Double[] values,
+            double mu
+            ) {
+
+        return CubicInterpolate(points, values, mu, false);
+    }
+
      public static double CubicInterpolate(
             double[] points,
             Double[] values,
-            double mu)
+            double mu,
+            boolean catmullRom)
     {
-
-        mu = (mu-points[1])/(points[2]-points[1]);
+        double originalValue = mu; //temp todo
+        mu = (mu-points[1])/(points[2]-points[1]); //normalize
         double y0 = values[0];
         double y1 = values[1];
         double y2 = values[2];
@@ -443,15 +460,24 @@ public class InterpolationController {
 
         //http://paulbourke.net/miscellaneous/interpolation/
         mu2 = mu*mu;
-        a0 = y3 - y2 - y0 + y1;
-        a1 = y0 - y1 - a0;
-        a2 = y2 - y0;
-        a3 = y1;
 
-//        a0 = -0.5*y0 + 1.5*y1 - 1.5*y2 + 0.5*y3;
-//        a1 = y0 - 2.5*y1 + 2*y2 - 0.5*y3;
-//        a2 = -0.5*y0 + 0.5*y2;
-//        a3 = y1;
+        if (catmullRom) {
+            a0 = -0.5*y0 + 1.5*y1 - 1.5*y2 + 0.5*y3;
+            a1 = y0 - 2.5*y1 + 2*y2 - 0.5*y3;
+            a2 = -0.5*y0 + 0.5*y2;
+            a3 = y1;
+
+
+            //todo uredi, naredi več različnih interpolacij, več splinpv, ...
+            return splineInterpolation2(points, values,originalValue);
+
+        } else {
+            a0 = y3 - y2 - y0 + y1;
+            a1 = y0 - y1 - a0;
+            a2 = y2 - y0;
+            a3 = y1;
+        }
+
         double a = a0*mu*mu2+a1*mu2+a2*mu+a3;
         if (a > 411000) {
             double c = a;
@@ -459,7 +485,44 @@ public class InterpolationController {
         return(a0*mu*mu2+a1*mu2+a2*mu+a3);
     }
 
+    public static double catmullRom( double[] points,
+                        Double[] values,
+                        double mu) {
+        return CubicInterpolate(points, values, mu, true);
+    }
+
     private static double[] getDoubleArrayFromIntList(List<Integer> list) {
         return ArrayUtils.toPrimitive(list.stream().map(x -> (double) x).toArray(Double[]::new));
+    }
+
+    public static double splineInterpolation(double[] points, double t){
+
+
+        t = (t-points[1])/(points[2]-points[1]); //normalize
+        double p0 = points[0];
+        double p1 = points[1];
+        double p2 = points[2];
+        double p3 = points[3];
+
+        double  d1,d2;
+        d1=0.5*(p2-p0);
+        d2=0.5*(p3-p1);
+        double a0=p1;
+        double a1=d1;
+        double a2=(3.0*(p2-p1))-(2.0*d1)-d2;
+        double a3=d1+d2+(2.0*(-p2+p1));
+
+        return a0+a1*t+a2*t*t+a3*t*t*t;
+
+    }
+
+    private static double splineInterpolation2(double[] points, Double[] values, double t){
+        SplineInterpolator si = new SplineInterpolator();
+        return si.interpolate(points,ArrayUtils.toPrimitive(values)).value(t);
+    }
+
+    private static double getSplineThirdDim(double[][] thirdDimInfo, int indexX, int indexY) {
+
+        return getBiCubicThirdDim(thirdDimInfo,indexX,indexY,true);
     }
 }
