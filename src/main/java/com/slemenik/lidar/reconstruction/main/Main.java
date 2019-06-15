@@ -4,24 +4,40 @@ import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
+import com.slemenik.lidar.reconstruction.mountains.EvenFieldController;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController;
-import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 
+import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
+import com.sun.j3d.utils.geometry.GeometryInfo;
+import com.sun.j3d.utils.geometry.NormalGenerator;
+import com.sun.j3d.utils.geometry.Stripifier;
+import delaunay_triangulation.Point_dt;
+import delaunay_triangulation.Triangle_dt;
+import javafx.geometry.Point3D;
+import javafx.scene.shape.TriangleMesh;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.geometry.Vector;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.locationtech.jts.geom.Coordinate;
+
+import javax.media.j3d.GeometryArray;
+import javax.media.j3d.Transform3D;
+import javax.vecmath.*;
 
 
 public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    private static final String INPUT_FILE_NAME = DATA_FOLDER + "out2.laz";
+    private static final String INPUT_FILE_NAME = DATA_FOLDER + "triglav okrnjen.laz";
     private static String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
@@ -55,40 +71,47 @@ public class Main {
         System.out.println("end");
     }
 
-    public static List<double[]> mainTest() {
+    private static List<double[]> mainTest() {
+
+                OUTPUT_FILE_NAME = DATA_FOLDER + "nevem.laz";
+
+//        List<double[]> arr2 = new MountainController().parseFolder("C:/Users/Matej/Documents/My Documents/Šola/4. FRI/Magistrska/DMV1000", DATA_FOLDER + "410_137_triglav.laz");
 
 
-        Double[] test2 = new Double[]{1D,15D,28d,56d};
-        double[] test = ArrayUtils.toPrimitive(test2);
-        double value = 25.5;
-//
-//        System.out.println(InterpolationController.CubicInterpolate(test,test2, value));
-//        System.out.println(InterpolationController.splineInterpolation(test, value));
-//        System.out.println(InterpolationController.catmullRom(test,test2, value));
-//        System.out.println(InterpolationController.cubicInterpolation(test, value));
-//        System.out.println(InterpolationController.splineInterpolation2(test, value));
-
-
-
-
-
-//        double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
-//        MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
-//        mc.interpolation = Interpolation.OWN_VALUE;
-//        return mc.getPointsFromFieldArray(mc.getBooleanPointField(arr), true);
-
-        List<double[]> arr2 = testMountains(Interpolation.SPLINE);
+//        List<double[]> arr2 = testMountains(Interpolation.SPLINE);
 //        List<double[]> arr2 = testBuildingCreation();
-//        List<double[]> arr2 = new ArrayList<>();
+        List<double[]> arr2 = new ArrayList<>();
 //        List<double[]> arr2 = ArrayList<double[]>(Arrays.asList(arr));
 
+//        Triangulation.triangulate(DMR_FILE_NAME);
+
+
+//         arr2.add(new double[]{0,0,0});
         return arr2;
 
     }
 
+
+    public static List<double[]> testMountainController(){
+        double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+        MountainController mc = new MountainController(arr);
+        mc.dmrFileName = DMR_FILE_NAME;
+        mc.start();
+        return null;
+    }
+
+    public static List<double[]> testMountainGrid3d(){
+        //naredi triglav, 3d, ne naredi praznih mest, ampak tista ki so že nafilana, ampak so x,y koordinate diskretne, mreža
+        double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+        OUTPUT_FILE_NAME = DATA_FOLDER + "triglav grid diskretno.laz";
+        EvenFieldController ef = new EvenFieldController(arr, CREATED_POINTS_SPACING);
+        ef.interpolation = Interpolation.OWN_VALUE;
+        return ef.getPointsFromFieldArray(ef.getBooleanPointField(arr), true);
+    }
+
     public static List<double[]> testBoundary() {
         double[][] arr = JniLibraryHelpers.getPointArray( INPUT_FILE_NAME);
-        MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
+        EvenFieldController mc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
 
         boolean[][] field = mc.getBooleanPointField(arr);
 
@@ -104,9 +127,9 @@ public class Main {
         System.out.println("method testMountains()");
         OUTPUT_FILE_NAME = DATA_FOLDER + "triglav4 spacing-"+ CREATED_POINTS_SPACING + " interpolation-"+ interp.toString()+ ".laz";
         double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
-        MountainController mc = new MountainController(arr, CREATED_POINTS_SPACING);
-        mc.interpolation = interp;
-        return mc.fillHoles(arr);
+        EvenFieldController efc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
+        efc.interpolation = interp;
+        return efc.fillHoles(arr);
     }
 
     public static List<double[]> testBuildingCreation() {
@@ -122,10 +145,6 @@ public class Main {
         bc.shpFileName = DATA_FOLDER + "BU_STAVBE_P.shp";
         bc.write(TEMP_BOUNDS);
         return bc.points2Insert;
-    }
-
-    public static void testAscFile() {
-        new MountainController().readAscFile(DMR_FILE_NAME);
     }
 
     public static void testTriangulation() {
