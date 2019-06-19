@@ -51,6 +51,8 @@ public class Main {
     private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
     private static  int COLOR = 6; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3;
 
+    private static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 10;
+
     public static void main(String[] args) {
         System.out.println("start main");
         long startTime = System.nanoTime();
@@ -93,7 +95,7 @@ public class Main {
 //        List<double[]> arr2 = testMountains(Interpolation.SPLINE);
 //        List<double[]> arr2 = testBuildingCreation();
 //        List<double[]> arr2 = ArrayList<double[]>(Arrays.asList(arr));
-        double[][] arr2 = null;
+        double[][] arr2 = new double[][]{};
 //        testHeapSpace();
         if (args.length <= 0) {
             arr2 = testMountainController(args);
@@ -101,7 +103,7 @@ public class Main {
 //        Triangulation.triangulate(DMR_FILE_NAME);
 
 
-
+//        System.out.print(HelperClass.isBetween(-2,-3,3));
 
         return arr2;
 
@@ -125,11 +127,13 @@ public class Main {
 
 
     public static double[][] testMountainController(String[] args) {
-        double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+//        double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+        double[][] arr = new double[][]{};
         MountainController mc = new MountainController(arr);
         arr = null; //!! essential, without it we get OutOfMemoryError: Java heap space
         mc.dmrFileName = DMR_FILE_NAME;
         mc.stopCount = args.length;
+        MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
         double[][] newPoints = mc.start();
 //        List <double[]> result = mc.temp();
         OUTPUT_FILE_NAME = DATA_FOLDER + "tests" + args.length + ".laz";

@@ -26,13 +26,16 @@ public class MountainController {
 
     public String dmrFileName;
     public String outputName;
+    public static double similarAngleToleranceDegrees;
 
     public int stopCount = 0;
     private int tempCount = 0;
+    private int tempCount2 = 0;
 
     private Transform3D translationCenter = new Transform3D(); // used for translating points so that center matches origin (0,0,0)
     private Transform3D translationBack = new Transform3D(); // used for translating points back to original state
-    private List<double[]> pastTransformationsAngles = new ArrayList<>();
+    private List<double[]> pastTransformationsAngles = new ArrayList<>(); //store angles of transformations we already did,
+                                                                            // list item: {aroundZToXAngle, aroundYtoZAngle}
 
     private List<Point3d> originalPointList = new ArrayList<>();
     private List<Point3d> transformedPointList = new ArrayList<>();
@@ -90,6 +93,8 @@ public class MountainController {
         System.out.println("Create normals");
         List<Vector3D> normalList = new ArrayList<>();
 
+        System.out.println(similarAngleToleranceDegrees);
+
         dt.trianglesIterator().forEachRemaining(triangleDt -> {
             if (!triangleDt.isHalfplane()) {
                 Vector3D normal = getNormalVector(triangleDt.p1(), triangleDt.p2(), triangleDt.p3());
@@ -97,11 +102,14 @@ public class MountainController {
 //                normalList.add(normal);
 //                if (tempCount % 2 ==0 ) temoObjectList.add(new Object());
                   Transform3D transformation = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
-                  calculateNewPoints(transformation);
-
+                  if (transformation != null) { // transformation == null if we already did a transformation with similar angles
+                      calculateNewPoints(transformation);
+                      tempCount2++;
+                  }
                   tempCount++;
             }
         });
+        HelperClass.printLine("all", tempCount, "actual transofirn ", tempCount2, "difference", tempCount-tempCount2);
         dt = null;
         return HelperClass.toResultDoubleArray(points2write);
 
@@ -110,37 +118,37 @@ public class MountainController {
     public void calculateNewPoints(Transform3D transformation){
 
 //
-                PriorityQueue<Point3d> rotatedPointsQueue = new PriorityQueue<>(Comparator.comparingDouble(p -> p.z));
+        PriorityQueue<Point3d> rotatedPointsQueue = new PriorityQueue<>(Comparator.comparingDouble(p -> p.z));
 //            if (normal.getZ() < 0.9 && normal.getZ() > 0.1) {
 //                System.out.println("transform points by normal:" + normal.getX() + ", " + normal.getY() + ", " + normal.getZ() + " still to go: " + (normalList.size() - count.get(0)));
 //            }
 
-                points2write.clear();//temp
+        points2write.clear();//temp
 
-                outputName = "test ." +tempCount + ".laz";
-                System.out.println(tempCount);
-                System.out.println(originalPointList.size());
+        outputName = "test ." +tempCount + ".laz";
+        System.out.println(tempCount);
+        System.out.println(originalPointList.size());
 //                originalPointList.clear();
-                points2writeTemp = null;
-                points2writeTemp = new double[15664254][3];
-                int i = 0;
+        points2writeTemp = null;
+        points2writeTemp = new double[15664254][3];
+        int i = 0;
 
-                try {
-                    for(Point3d originalPoint : originalPointList) {
-                        Point3d newPoint = new Point3d();
-                        transformation.transform(originalPoint, newPoint);
+        try {
+            for(Point3d originalPoint : originalPointList) {
+                Point3d newPoint = new Point3d();
+                transformation.transform(originalPoint, newPoint);
 //                    rotatedPointsQueue.add(newPoint);
 //                         tempPoint2 = (new double[]{originalPoint.x, originalPoint.y, originalPoint.z});
 //                        points2write.add(tempPoint2);
 //                        points2write.add(new double[]{newPoint.x, newPoint.y, newPoint.z});
-                        points2writeTemp[i] = new double[]{newPoint.x, newPoint.y, newPoint.z};
-                        i++;
-                    }
-                } catch (OutOfMemoryError error) {
-                    System.out.println(error);
-                    System.out.println(i);
-                    return;
-                }
+                points2writeTemp[i] = new double[]{newPoint.x, newPoint.y, newPoint.z};
+                i++;
+            }
+        } catch (OutOfMemoryError error) {
+            System.out.println(error);
+            System.out.println(i);
+            return;
+        }
 
 //                while (!rotatedPointsQueue.isEmpty()) {
 //                    System.out.println(rotatedPointsQueue.remove());
@@ -149,11 +157,11 @@ public class MountainController {
 //                if (tempCount == 3) {//temp
 //                    double[][] pointListDoubleArray = points2write.toArray(new double[][]{});
 //                    System.out.println("Points to write: " + outputName);
-                    JniLibraryHelpers.writePointList(points2writeTemp, INPUT_FILE_NAME, DATA_FOLDER + outputName, (tempCount % 6)+1);
+            JniLibraryHelpers.writePointList(points2writeTemp, INPUT_FILE_NAME, DATA_FOLDER + outputName, (tempCount % 6)+1);
 //                }
 
-                // - odstrani iz rotatedPoints tiste ki so dlje
-                //       - probaj dat točke v evenFieldController, spremeni tam da se upoštevajo ustrezne koordinate: z se ne sme več ignoritat
+        // - odstrani iz rotatedPoints tiste ki so dlje
+        //       - probaj dat točke v evenFieldController, spremeni tam da se upoštevajo ustrezne koordinate: z se ne sme več ignoritat
 //            System.out.println("transformation ended, get next normal");
 
 
@@ -179,9 +187,13 @@ public class MountainController {
         double xyzLength = Math.sqrt(x*x + y*y + z*z); //normal length
         double aroundYtoZAngle = Math.asin(xyLength/xyzLength); // z cannot be < 0; direction always + (from +x to +z)
 
-//        System.out.println("koti " + aroundZToXAngle + " " + aroundYtoZAngle);
         //check if similiar transformation was alredy done
-        //todo optimization - remove transformations/normals that are almost identical
+        if (similarTransformationExists(aroundZToXAngle, aroundYtoZAngle, pastTransformationsAngles)) {
+            return null;
+        } else {
+            pastTransformationsAngles.add(new double[]{aroundZToXAngle, aroundYtoZAngle});
+        }
+//        HelperClass.printLine(Math.toDegrees(aroundZToXAngle), Math.toDegrees(aroundYtoZAngle));
 
         //create transformation matrix based on rotation angles
         //transformation order: translate to origin (0,0,0), rotate by z-axis, rotate by y-axis, then translate back to start
@@ -198,6 +210,20 @@ public class MountainController {
         transformation.mul(translationBack);
 
         return transformation;
+    }
+
+    private static boolean similarTransformationExists(double potentialAngle1, double potentialAngle2, List<double[]> angleList) {
+        for (double[] angles : angleList) {
+            double existingAngle1 = angles[0];
+            double existingAngle2 = angles[1];
+            //check if angle we want to translate to is close to one of existing angles; close= somehwhere before or after existing angle (+/- tolerance)
+            if (HelperClass.isBetween(potentialAngle1, existingAngle1-Math.toRadians(similarAngleToleranceDegrees), existingAngle1+Math.toRadians(similarAngleToleranceDegrees))
+                    && HelperClass.isBetween(potentialAngle2, existingAngle2-Math.toRadians(similarAngleToleranceDegrees), existingAngle2+Math.toRadians(similarAngleToleranceDegrees))
+            ){
+                return true;
+            }
+        }
+        return false;
     }
 
     /*returns array of object Point_dt with coordinates from DMR file*/

@@ -30,6 +30,11 @@ public class HelperClass {
 
     }
 
+    // returns true if c is between a and b
+    public static boolean isBetween(double c, double a, double b) {
+        return b > a ? c > a && c < b : c > b && c < a;
+    }
+
 //    public static double[][] toResultDoubleArray(List<Point3d> list) {
 //    }
 }
