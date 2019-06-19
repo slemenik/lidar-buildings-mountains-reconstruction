@@ -19,6 +19,17 @@ public class HelperClass {
 
     }
 
+    public static void printLine(Object... params){
+        for (int i = 0; i<params.length; i++) {
+            System.out.print(params[i]);
+            if (i != params.length-1) {
+                System.out.print(", ");
+            }
+        }
+        System.out.println();
+
+    }
+
 //    public static double[][] toResultDoubleArray(List<Point3d> list) {
 //    }
 }
