@@ -4,6 +4,7 @@ package com.slemenik.lidar.reconstruction.mountains;
 
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import com.slemenik.lidar.reconstruction.main.HelperClass;
+import com.slemenik.lidar.reconstruction.main.Main;
 import delaunay_triangulation.Point_dt;
 import delaunay_triangulation.Triangle_dt;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
@@ -26,9 +27,10 @@ public class MountainController {
 
     public String dmrFileName;
     public String outputName;
-    public static double similarAngleToleranceDegrees;
+    public static double similarAngleToleranceDegrees = 10;
+    public static double zDepthFactor = 10;
 
-    public int stopCount = 0;
+    public int tempStopCount = 0;
     private int tempCount = 0;
     private int tempCount2 = 0;
 
@@ -91,7 +93,7 @@ public class MountainController {
         dmrPointList = null; //garbage collector optimization
         //create normals
         System.out.println("Create normals");
-        List<Vector3D> normalList = new ArrayList<>();
+        List<Transform3D> transformationList = new ArrayList<>();
 
         System.out.println(similarAngleToleranceDegrees);
 
@@ -101,27 +103,38 @@ public class MountainController {
                 //todo maybe calculate here directly instead of creating a list and then iterating it
 //                normalList.add(normal);
 //                if (tempCount % 2 ==0 ) temoObjectList.add(new Object());
+
+                    //-46.30999999997357, 0.010000000009313226, 0.010000000009313226
                   Transform3D transformation = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
-                  if (transformation != null) { // transformation == null if we already did a transformation with similar angles
-                      calculateNewPoints(transformation);
+                  if (transformation != null) { // transformation == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
+//                      HelperClass.printLine(normal.getX(), normal.getZ(), normal.getZ());
+//                      int a = 5/0;
+                      transformationList.add(transformation);
                       tempCount2++;
                   }
                   tempCount++;
             }
         });
+        //all, 1998099, actual transofirn , 8523, difference, 1989576, similarAngleToleranceDegrees=10
         HelperClass.printLine("all", tempCount, "actual transofirn ", tempCount2, "difference", tempCount-tempCount2);
         dt = null;
+
+        transformationList.forEach(this::calculateNewPoints);
+
         return HelperClass.toResultDoubleArray(points2write);
 
     }
 
     public void calculateNewPoints(Transform3D transformation){
 
-//
-        PriorityQueue<Point3d> rotatedPointsQueue = new PriorityQueue<>(Comparator.comparingDouble(p -> p.z));
-//            if (normal.getZ() < 0.9 && normal.getZ() > 0.1) {
-//                System.out.println("transform points by normal:" + normal.getX() + ", " + normal.getY() + ", " + normal.getZ() + " still to go: " + (normalList.size() - count.get(0)));
-//            }
+        TreeSet<Point3d> rotatedPointsTreeSet = new TreeSet<>((p1, p2) -> {
+            if (p1.x == p2.x && p1.y == p2.y && p1.z == p2.z) {
+                return 0; //if point is exactly the same, return 0 so there are no duplicates
+            } else {
+                //in case of not being duplicates, order them by z
+                return Double.compare(p1.z, p2.z);
+            }
+        });
 
         points2write.clear();//temp
 
@@ -129,35 +142,49 @@ public class MountainController {
         System.out.println(tempCount);
         System.out.println(originalPointList.size());
 //                originalPointList.clear();
-        points2writeTemp = null;
-        points2writeTemp = new double[15664254][3];
+//        points2writeTemp = null;
         int i = 0;
 
-        try {
-            for(Point3d originalPoint : originalPointList) {
-                Point3d newPoint = new Point3d();
-                transformation.transform(originalPoint, newPoint);
-//                    rotatedPointsQueue.add(newPoint);
+        double minZ = Double.MAX_VALUE;
+        double maxZ = 0;
+        for(Point3d originalPoint : originalPointList) {
+            Point3d newPoint = new Point3d();
+            transformation.transform(originalPoint, newPoint);
 //                         tempPoint2 = (new double[]{originalPoint.x, originalPoint.y, originalPoint.z});
 //                        points2write.add(tempPoint2);
 //                        points2write.add(new double[]{newPoint.x, newPoint.y, newPoint.z});
-                points2writeTemp[i] = new double[]{newPoint.x, newPoint.y, newPoint.z};
-                i++;
-            }
-        } catch (OutOfMemoryError error) {
-            System.out.println(error);
-            System.out.println(i);
-            return;
+//                points2writeTemp[i] = new double[]{newPoint.x, newPoint.y, newPoint.z};
+            rotatedPointsTreeSet.add(newPoint);
+            if (minZ > newPoint.z) minZ = newPoint.z;
+            if (maxZ < newPoint.z) maxZ = newPoint.z;
+            i++;
         }
 
-//                while (!rotatedPointsQueue.isEmpty()) {
-//                    System.out.println(rotatedPointsQueue.remove());
-//                }
+        double currentMaxZDepth = minZ + zDepthFactor;
+        Iterator<Point3d> treeSetIterator = rotatedPointsTreeSet.iterator();
+        int pointNumCurrent = 0;
+        SortedSet<Point3d> pointsCurrent;
+        while (treeSetIterator.hasNext()) {
+            Point3d point = treeSetIterator.next();
+            if (point.z > currentMaxZDepth) { //reached current threshold, find missing points for current points
+                pointsCurrent = rotatedPointsTreeSet.headSet(point);
+                List<double[]> dd = Main.testMountains(pointsCurrent.stream().map(p -> new double[]{p.x, p.y, p.z}).toArray(double[][]::new));
+                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(dd), INPUT_FILE_NAME, DATA_FOLDER + pointNumCurrent + outputName, (tempCount % 6)+1);
+
+                //dodaj nove tocke v treeset
+                treeSetIterator = rotatedPointsTreeSet.iterator(); //reset iterator
+                currentMaxZDepth += zDepthFactor;
+                System.out.println("reset iterator");
+            }
+            pointNumCurrent++;
+        }
+
+//        Main.testBoundary()
 
 //                if (tempCount == 3) {//temp
 //                    double[][] pointListDoubleArray = points2write.toArray(new double[][]{});
 //                    System.out.println("Points to write: " + outputName);
-            JniLibraryHelpers.writePointList(points2writeTemp, INPUT_FILE_NAME, DATA_FOLDER + outputName, (tempCount % 6)+1);
+//            JniLibraryHelpers.writePointList(points2writeTemp, INPUT_FILE_NAME, DATA_FOLDER + outputName, (tempCount % 6)+1);
 //                }
 
         // - odstrani iz rotatedPoints tiste ki so dlje
@@ -172,7 +199,7 @@ public class MountainController {
     }
 
     /*input: x,y,z of a vector of direction we want to translate z-axis to*/
-    private Transform3D getRotationTransformation(double x, double y, double z) {
+    public/*temp- dej na private*/ Transform3D getRotationTransformation(double x, double y, double z) {
 
         //calculate two angles: 1. from current direcion to x-axis (rotate around z-axis)
         //                      2. from x-axis to z-axid (rotate around y-axis)

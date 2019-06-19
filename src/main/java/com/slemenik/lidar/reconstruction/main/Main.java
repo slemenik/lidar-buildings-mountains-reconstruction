@@ -3,35 +3,21 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
 import com.slemenik.lidar.reconstruction.mountains.EvenFieldController;
-import com.slemenik.lidar.reconstruction.mountains.InterpolationController;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 
 import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
-import com.sun.j3d.utils.geometry.GeometryInfo;
-import com.sun.j3d.utils.geometry.NormalGenerator;
-import com.sun.j3d.utils.geometry.Stripifier;
 import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
-import delaunay_triangulation.Triangle_dt;
-import javafx.geometry.Point3D;
-import javafx.scene.shape.TriangleMesh;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.math3.geometry.Vector;
-import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
-import org.locationtech.jts.geom.Coordinate;
 
-import javax.media.j3d.GeometryArray;
 import javax.media.j3d.Transform3D;
-import javax.vecmath.*;
 
 
 public class Main {
@@ -100,10 +86,33 @@ public class Main {
         if (args.length <= 0) {
             arr2 = testMountainController(args);
         }
-//        Triangulation.triangulate(DMR_FILE_NAME);
+
+        TreeSet<Integer> ts = new TreeSet<>();
+        ts.add(1);
+        ts.add(1-2);
+        ts.add(22);
+        ts.add(1432);
+        ts.add(4);
+
+        Iterator<Integer> it = ts.iterator();
+        int ii = 0;
+        while(it.hasNext()) {
+            ii++;
+            int i = it.next();
+            System.out.println(i);
+//            if (i == 22) {
+//                ts.add(-20);
+//                ts.add(4);
+////                it = ts.iterator();
+//            }
+            if (ii > 15) {
+                break;
+            }
+
+        }
+        System.out.print(ts.headSet(2));
 
 
-//        System.out.print(HelperClass.isBetween(-2,-3,3));
 
         return arr2;
 
@@ -127,15 +136,21 @@ public class Main {
 
 
     public static double[][] testMountainController(String[] args) {
-//        double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
-        double[][] arr = new double[][]{};
+        double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+//        double[][] arr = new double[][]{};
         MountainController mc = new MountainController(arr);
         arr = null; //!! essential, without it we get OutOfMemoryError: Java heap space
         mc.dmrFileName = DMR_FILE_NAME;
-        mc.stopCount = args.length;
+        mc.tempStopCount = args.length;
         MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
-        double[][] newPoints = mc.start();
-//        List <double[]> result = mc.temp();
+        MountainController.zDepthFactor = 10; //temp
+//        double[][] newPoints = mc.start();
+        double[][] newPoints = null;
+
+        //temp///
+        Transform3D transformation = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226);
+        mc.calculateNewPoints(transformation);
+        /////////
         OUTPUT_FILE_NAME = DATA_FOLDER + "tests" + args.length + ".laz";
         return newPoints;
     }
@@ -151,6 +166,11 @@ public class Main {
 
     public static List<double[]> testBoundary() {
         double[][] arr = JniLibraryHelpers.getPointArray( INPUT_FILE_NAME);
+        return testBoundary(arr);
+    }
+
+    public static List<double[]> testBoundary(double[][] arr) {
+
         EvenFieldController mc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
 
         boolean[][] field = mc.getBooleanPointField(arr);
@@ -161,6 +181,12 @@ public class Main {
 
         return mc.getPointsFromFieldArray(newField, true);
 
+    }
+
+    public static List<double[]> testMountains(double[][] arr) {
+        EvenFieldController efc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
+        efc.interpolation = Interpolation.SPLINE;
+        return efc.fillHoles(arr);
     }
 
     public static List<double[]> testMountains(Interpolation interp) {
