@@ -3,6 +3,7 @@ package com.slemenik.lidar.reconstruction.mountains;
 
 
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
+import com.slemenik.lidar.reconstruction.main.HelperClass;
 import delaunay_triangulation.Point_dt;
 import delaunay_triangulation.Triangle_dt;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
@@ -35,7 +36,7 @@ public class MountainController {
 
     private List<Point3d> originalPointList = new ArrayList<>();
     private List<Point3d> transformedPointList = new ArrayList<>();
-    private List<double[]> points2write = new ArrayList<>();
+    private List<Point3d> points2write = new ArrayList<>();
     private double[][] points2writeTemp;
 
     public MountainController(double[][] arr) {
@@ -76,7 +77,7 @@ public class MountainController {
         translationBack.setTranslation(new Vector3d(-centerX, -centerY, -centerZ));
     }
 
-    public List<double[]> start() {
+    public double[][] start() {
 
         Point_dt[] dmrPointList = getDmrFromFile(dmrFileName);
 
@@ -98,23 +99,18 @@ public class MountainController {
                   Transform3D transformation = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
                   calculateNewPoints(transformation);
 
-
-
                   tempCount++;
             }
         });
         dt = null;
-        return points2write;
+        return HelperClass.toResultDoubleArray(points2write);
 
     }
 
     public void calculateNewPoints(Transform3D transformation){
 
-
-        try {
-
 //
-//                PriorityQueue<Point3d> rotatedPointsQueue = new PriorityQueue<>(Comparator.comparingDouble(p -> p.z));
+                PriorityQueue<Point3d> rotatedPointsQueue = new PriorityQueue<>(Comparator.comparingDouble(p -> p.z));
 //            if (normal.getZ() < 0.9 && normal.getZ() > 0.1) {
 //                System.out.println("transform points by normal:" + normal.getX() + ", " + normal.getY() + ", " + normal.getZ() + " still to go: " + (normalList.size() - count.get(0)));
 //            }
@@ -161,9 +157,7 @@ public class MountainController {
 //            System.out.println("transformation ended, get next normal");
 
 
-        } catch (Exception e) {
-            System.out.println(e + ". " + outputName);
-        }
+
 
         System.out.println("end");
 
