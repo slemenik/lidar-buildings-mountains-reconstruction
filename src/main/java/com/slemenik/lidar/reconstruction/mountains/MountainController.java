@@ -2,7 +2,9 @@ package com.slemenik.lidar.reconstruction.mountains;
 
 
 
+import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import delaunay_triangulation.Point_dt;
+import delaunay_triangulation.Triangle_dt;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 import javax.media.j3d.Transform3D;
@@ -10,30 +12,38 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 import delaunay_triangulation.Delaunay_Triangulation;
+import org.locationtech.jts.geom.Coordinate;
 
 import static com.slemenik.lidar.reconstruction.buildings.ShpController.getBoundsFromFilename;
+import static com.slemenik.lidar.reconstruction.main.Main.DATA_FOLDER;
+import static com.slemenik.lidar.reconstruction.main.Main.INPUT_FILE_NAME;
 
 public class MountainController {
 
     public String dmrFileName;
+    public String outputName;
 
-    private double centerX;
-    private double centerY;
-    private double centerZ;
+    public int stopCount = 0;
+    private int tempCount = 0;
+
+    private Transform3D translationCenter = new Transform3D(); // used for translating points so that center matches origin (0,0,0)
+    private Transform3D translationBack = new Transform3D(); // used for translating points back to original state
+    private List<double[]> pastTransformationsAngles = new ArrayList<>();
 
     private List<Point3d> originalPointList = new ArrayList<>();
+    private List<Point3d> transformedPointList = new ArrayList<>();
+    private List<double[]> points2write = new ArrayList<>();
+    private double[][] points2writeTemp;
 
     public MountainController(double[][] arr) {
 //        dmrFileName = new ArrayList<>();
-        setCenterAndPointList(arr);
+        setPointListAndTranslationCenter(arr);
     }
 
-    private void setCenterAndPointList(double[][] arr){
+    private void setPointListAndTranslationCenter(double[][] arr){
         double minX = Double.MAX_VALUE;
         double maxX = 0;
         double minY = Double.MAX_VALUE;
@@ -58,12 +68,15 @@ public class MountainController {
             if (point[2] < minZ) minZ = point[2];
         }
 
-         centerX = (minX + maxX)/2;
-         centerY = (minY + maxY)/2;
-         centerZ = (minZ + maxZ)/2;
+        double centerX = (minX + maxX)/2;
+        double centerY = (minY + maxY)/2;
+        double centerZ = (minZ + maxZ)/2;
+
+        translationCenter.setTranslation(new Vector3d(centerX, centerY, centerZ));
+        translationBack.setTranslation(new Vector3d(-centerX, -centerY, -centerZ));
     }
 
-    public void start() {
+    public List<double[]> start() {
 
         Point_dt[] dmrPointList = getDmrFromFile(dmrFileName);
 
@@ -71,27 +84,88 @@ public class MountainController {
         Delaunay_Triangulation dt = new Delaunay_Triangulation(dmrPointList);
         System.out.println("End triangulation");
 
+        dmrPointList = null; //garbage collector optimization
         //create normals
+        System.out.println("Create normals");
         List<Vector3D> normalList = new ArrayList<>();
+
         dt.trianglesIterator().forEachRemaining(triangleDt -> {
             if (!triangleDt.isHalfplane()) {
                 Vector3D normal = getNormalVector(triangleDt.p1(), triangleDt.p2(), triangleDt.p3());
                 //todo maybe calculate here directly instead of creating a list and then iterating it
-                normalList.add(normal);
+//                normalList.add(normal);
+//                if (tempCount % 2 ==0 ) temoObjectList.add(new Object());
+                  Transform3D transformation = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
+                  calculateNewPoints(transformation);
+
+
+
+                  tempCount++;
             }
         });
+        dt = null;
+        return points2write;
 
-        normalList.forEach(normal -> {
-            //todo optimization - remove normals that are almost identical
-            Transform3D transformation = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
-            List<Point3d> rotatedPoints = new ArrayList<>();
-            originalPointList.forEach(originalPoint -> {
-                Point3d newPoint = new Point3d();
-                transformation.transform(originalPoint, newPoint);
-                rotatedPoints.add(newPoint);
-            });
+    }
 
-        });
+    public void calculateNewPoints(Transform3D transformation){
+
+
+        try {
+
+//
+//                PriorityQueue<Point3d> rotatedPointsQueue = new PriorityQueue<>(Comparator.comparingDouble(p -> p.z));
+//            if (normal.getZ() < 0.9 && normal.getZ() > 0.1) {
+//                System.out.println("transform points by normal:" + normal.getX() + ", " + normal.getY() + ", " + normal.getZ() + " still to go: " + (normalList.size() - count.get(0)));
+//            }
+
+                points2write.clear();//temp
+
+                outputName = "test ." +tempCount + ".laz";
+                System.out.println(tempCount);
+                System.out.println(originalPointList.size());
+//                originalPointList.clear();
+                points2writeTemp = null;
+                points2writeTemp = new double[15664254][3];
+                int i = 0;
+
+                try {
+                    for(Point3d originalPoint : originalPointList) {
+                        Point3d newPoint = new Point3d();
+                        transformation.transform(originalPoint, newPoint);
+//                    rotatedPointsQueue.add(newPoint);
+//                         tempPoint2 = (new double[]{originalPoint.x, originalPoint.y, originalPoint.z});
+//                        points2write.add(tempPoint2);
+//                        points2write.add(new double[]{newPoint.x, newPoint.y, newPoint.z});
+                        points2writeTemp[i] = new double[]{newPoint.x, newPoint.y, newPoint.z};
+                        i++;
+                    }
+                } catch (OutOfMemoryError error) {
+                    System.out.println(error);
+                    System.out.println(i);
+                    return;
+                }
+
+//                while (!rotatedPointsQueue.isEmpty()) {
+//                    System.out.println(rotatedPointsQueue.remove());
+//                }
+
+//                if (tempCount == 3) {//temp
+//                    double[][] pointListDoubleArray = points2write.toArray(new double[][]{});
+//                    System.out.println("Points to write: " + outputName);
+                    JniLibraryHelpers.writePointList(points2writeTemp, INPUT_FILE_NAME, DATA_FOLDER + outputName, (tempCount % 6)+1);
+//                }
+
+                // - odstrani iz rotatedPoints tiste ki so dlje
+                //       - probaj dat točke v evenFieldController, spremeni tam da se upoštevajo ustrezne koordinate: z se ne sme več ignoritat
+//            System.out.println("transformation ended, get next normal");
+
+
+        } catch (Exception e) {
+            System.out.println(e + ". " + outputName);
+        }
+
+        System.out.println("end");
 
     }
 
@@ -111,16 +185,16 @@ public class MountainController {
         double xyzLength = Math.sqrt(x*x + y*y + z*z); //normal length
         double aroundYtoZAngle = Math.asin(xyLength/xyzLength); // z cannot be < 0; direction always + (from +x to +z)
 
+//        System.out.println("koti " + aroundZToXAngle + " " + aroundYtoZAngle);
+        //check if similiar transformation was alredy done
+        //todo optimization - remove transformations/normals that are almost identical
+
         //create transformation matrix based on rotation angles
         //transformation order: translate to origin (0,0,0), rotate by z-axis, rotate by y-axis, then translate back to start
         Transform3D rotationZ = new Transform3D();
         Transform3D rotationY = new Transform3D();
-        Transform3D translationCenter = new Transform3D();
-        Transform3D translationBack = new Transform3D();
         Transform3D transformation = new Transform3D();
 
-        translationCenter.setTranslation(new Vector3d(centerX, centerY, centerZ));
-        translationBack.setTranslation(new Vector3d(-centerX, -centerY, -centerZ));
         rotationZ.rotZ(aroundZToXAngle);
         rotationY.rotY(aroundYtoZAngle);
 
@@ -134,12 +208,12 @@ public class MountainController {
 
     /*returns array of object Point_dt with coordinates from DMR file*/
     /*used for triangulation*/
-    private Point_dt[] getDmrFromFile(String ascFileName) {
+    public Point_dt[] getDmrFromFile(String ascFileName) {
         System.out.println("method getDmrFromFile()");
         List<Point_dt> list = new ArrayList<>();
 //        int i = 0;
-//        Coordinate center = new Coordinate(410810.150, 137776.920, 2777.130);
-//        double radius = 150.0;
+        Coordinate center = new Coordinate(410809.150, 137774.920, 2761.130);
+        double radius = 300.0;
 
         try {
             Scanner scanner = new Scanner(new File(ascFileName));
@@ -149,11 +223,8 @@ public class MountainController {
                 double x = Double.parseDouble(coordinates[0]);
                 double y = Double.parseDouble(coordinates[1]);
                 double z = Double.parseDouble(coordinates[2]);
-                list.add(new Point_dt(x,y,z));
-
 //                if (center.distance3D(new Coordinate(x,y,z)) < radius) {
-//                    temp.add( new Point3d(x,y,z));
-//                    temp2.add(new Point_dt(x,y,z));;
+                    list.add(new Point_dt(x,y, z));
 //                }
 
             }
@@ -201,14 +272,18 @@ public class MountainController {
     //http://www.java-gaming.org/topics/reopened-calculating-normal-vectors/33838/view.html
     //https://www.khronos.org/opengl/wiki/Calculating_a_Surface_Normal
     private static Vector3D getNormalVector(Point_dt p1, Point_dt p2, Point_dt p3){
-        System.out.println("method getNormalVector()");
+//        System.out.println("method getNormalVector()");
 //
 //        System.out.println(p1.toString());
 //        System.out.println(p2.toString());
 //        System.out.println(p3.toString());
 
-        Vector3D U = new Vector3D(p2.x(), p2.y(), p2.z()).subtract(new Vector3D(p1.x(), p1.y(), p1.z()));
-        Vector3D V = new Vector3D(p3.x(), p3.y(), p3.z()).subtract(new Vector3D(p1.x(), p1.y(), p1.z()));
+        Vector3D vectorP1 = new Vector3D(p1.x(), p1.y(), p1.z());
+        Vector3D vectorP2 = new Vector3D(p2.x(), p2.y(), p2.z());
+        Vector3D vectorP3 = new Vector3D(p3.x(), p3.y(), p3.z());
+
+        Vector3D U = vectorP2.subtract(vectorP1);
+        Vector3D V = vectorP3.subtract(vectorP1);
 
         Vector3D normal = U.crossProduct(V);
 
@@ -216,7 +291,7 @@ public class MountainController {
             normal = V.crossProduct(U);
         }
 
-        System.out.println("normal vector: " + normal.getX() + ", " + normal.getY() + ", " + normal.getZ());
+//        System.out.println("normal vector: " + normal.getX() + ", " + normal.getY() + ", " + normal.getZ());
         return normal;
 //        return getNormalAngle(normal.getX(),normal.getY(), normal.getZ());
 //        return rotate(new Vector3d(normal.getX(),normal.getY(), normal.getZ()));

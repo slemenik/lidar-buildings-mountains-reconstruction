@@ -18,6 +18,7 @@ import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 import com.sun.j3d.utils.geometry.GeometryInfo;
 import com.sun.j3d.utils.geometry.NormalGenerator;
 import com.sun.j3d.utils.geometry.Stripifier;
+import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
 import delaunay_triangulation.Triangle_dt;
 import javafx.geometry.Point3D;
@@ -37,7 +38,7 @@ public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    private static final String INPUT_FILE_NAME = DATA_FOLDER + "triglav okrnjen.laz";
+    public static final String INPUT_FILE_NAME = DATA_FOLDER + "410_137_triglav.laz";//"triglav okrnjen.laz";
     private static String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
@@ -48,12 +49,12 @@ public class Main {
     private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
     private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
-    private static final int COLOR = 6; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3;
+    private static  int COLOR = 6; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3;
 
     public static void main(String[] args) {
         System.out.println("start main");
         long startTime = System.nanoTime();
-        List<double[]> points2Insert = mainTest();
+        List<double[]> points2Insert = mainTest(args);
 
         if (!points2Insert.isEmpty()) {
             System.out.println("zacetek pisanja... ");
@@ -61,6 +62,18 @@ public class Main {
             System.out.println("Points to write: " + pointListDoubleArray.length);
             int returnValue = JniLibraryHelpers.writePointList(pointListDoubleArray, INPUT_FILE_NAME, OUTPUT_FILE_NAME, COLOR);
             System.out.println("End writing. Points written: " + returnValue);
+
+            ////////temp////////////7
+//            if (args.length > 0) {
+                int a = args.length+1;
+                System.out.println("jovo na novo");
+                COLOR = a;
+                main(new String[a]);
+
+
+//            }
+            ////////temp////////////7
+
         }
 
         System.out.println();
@@ -71,7 +84,7 @@ public class Main {
         System.out.println("end");
     }
 
-    private static List<double[]> mainTest() {
+    private static List<double[]> mainTest(String[] args) {
 
                 OUTPUT_FILE_NAME = DATA_FOLDER + "nevem.laz";
 
@@ -80,24 +93,48 @@ public class Main {
 
 //        List<double[]> arr2 = testMountains(Interpolation.SPLINE);
 //        List<double[]> arr2 = testBuildingCreation();
-        List<double[]> arr2 = new ArrayList<>();
 //        List<double[]> arr2 = ArrayList<double[]>(Arrays.asList(arr));
-
+        List<double[]> arr2 = new ArrayList<>();
+//        testHeapSpace();
+        if (args.length <= 0) {
+            arr2 = testMountainController(args);
+        }
 //        Triangulation.triangulate(DMR_FILE_NAME);
 
 
-//         arr2.add(new double[]{0,0,0});
+
+
         return arr2;
 
     }
 
+    public static void testHeapSpace(){
 
-    public static List<double[]> testMountainController(){
+        double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+        double[][] arr2 = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+        double[][] arr3 = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+        double[][] arr4 = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+
+    }
+
+    public static void writeOBJ() {
+        MountainController mc = new MountainController(new double[][]{});
+        Point_dt[] list = mc.getDmrFromFile(DMR_FILE_NAME);
+        Delaunay_Triangulation dt = new Delaunay_Triangulation(list);
+        try { dt.write_smf("smf.obj"); }catch (Exception e) {}
+    }
+
+
+    public static List<double[]> testMountainController(String[] args) {
         double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
         MountainController mc = new MountainController(arr);
+        arr = null; //!! essential, without it we get OutOfMemoryError: Java heap space
         mc.dmrFileName = DMR_FILE_NAME;
-        mc.start();
-        return null;
+        mc.stopCount = args.length;
+        List<double[]> newPoints = mc.start();
+//        List <double[]> result = mc.temp();
+        OUTPUT_FILE_NAME = DATA_FOLDER + "tests" + args.length + ".laz";
+        return newPoints;
     }
 
     public static List<double[]> testMountainGrid3d(){
