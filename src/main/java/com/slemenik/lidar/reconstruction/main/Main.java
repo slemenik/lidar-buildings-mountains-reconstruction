@@ -24,7 +24,7 @@ public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    public static final String INPUT_FILE_NAME = DATA_FOLDER + "410_137_triglav.laz";//"triglav okrnjen.laz";
+    public static final String INPUT_FILE_NAME = DATA_FOLDER + "frag1.laz";//"triglav okrnjen.laz";
     private static String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
@@ -35,7 +35,7 @@ public class Main {
     private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
     private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
-    private static  int COLOR = 6; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3;
+    private static  int COLOR = 6; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3-temno zelena;
 
     private static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 10;
 
@@ -143,7 +143,7 @@ public class Main {
         mc.dmrFileName = DMR_FILE_NAME;
         mc.tempStopCount = args.length;
         MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
-        MountainController.zDepthFactor = 10; //temp
+        MountainController.zDepthFactor = 100; //temp
 //        double[][] newPoints = mc.start();
         double[][] newPoints = null;
 
@@ -172,15 +172,18 @@ public class Main {
     public static List<double[]> testBoundary(double[][] arr) {
 
         EvenFieldController mc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
-
         boolean[][] field = mc.getBooleanPointField(arr);
-
         boolean[][] newField = mc.getBoundaryField(field);
 //        boolean[][] newField = field;
 
-
         return mc.getPointsFromFieldArray(newField, true);
 
+    }
+
+    public static List<double[]> testMountains(double[][] arr, double minX, double maxX, double minY, double maxY) {
+        EvenFieldController efc = new EvenFieldController( minX, maxX, minY, maxY, CREATED_POINTS_SPACING);
+        efc.interpolation = Interpolation.SPLINE;
+        return efc.fillHoles(arr);
     }
 
     public static List<double[]> testMountains(double[][] arr) {

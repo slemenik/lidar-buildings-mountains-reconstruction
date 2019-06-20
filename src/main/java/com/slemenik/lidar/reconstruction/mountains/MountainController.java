@@ -6,7 +6,6 @@ import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.main.Main;
 import delaunay_triangulation.Point_dt;
-import delaunay_triangulation.Triangle_dt;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 import javax.media.j3d.Transform3D;
@@ -28,7 +27,7 @@ public class MountainController {
     public String dmrFileName;
     public String outputName;
     public static double similarAngleToleranceDegrees = 10;
-    public static double zDepthFactor = 10;
+    public static double zDepthFactor = 100;
 
     public int tempStopCount = 0;
     private int tempCount = 0;
@@ -44,12 +43,20 @@ public class MountainController {
     private List<Point3d> points2write = new ArrayList<>();
     private double[][] points2writeTemp;
 
+    private double originalMaxX = 0;
+    private double originalMinX = 0;
+    private double originalMaxY = 0;
+    private double originalMinY = 0;
+    private double originalMaxZ = 0;
+    private double originalMinZ = 0;
+
     public MountainController(double[][] arr) {
 //        dmrFileName = new ArrayList<>();
-        setPointListAndTranslationCenter(arr);
+        setParams(arr);
     }
 
-    private void setPointListAndTranslationCenter(double[][] arr){
+    /*sets class variables: all max and min values per coordiante, pointList, translation*/
+    private void setParams(double[][] arr){
         double minX = Double.MAX_VALUE;
         double maxX = 0;
         double minY = Double.MAX_VALUE;
@@ -73,6 +80,13 @@ public class MountainController {
             if (point[2] > maxZ) maxZ = point[2];
             if (point[2] < minZ) minZ = point[2];
         }
+
+        this.originalMaxX = maxX;
+        this.originalMinX = minX;
+        this.originalMaxY = maxY;
+        this.originalMinY = minY;
+        this.originalMaxZ = maxZ;
+        this.originalMinZ = minZ;
 
         double centerX = (minX + maxX)/2;
         double centerY = (minY + maxY)/2;
@@ -144,9 +158,13 @@ public class MountainController {
 //                originalPointList.clear();
 //        points2writeTemp = null;
         int i = 0;
-
-        double minZ = Double.MAX_VALUE;
-        double maxZ = 0;
+        points2writeTemp = new double[originalPointList.size()][3];
+        double transMinX = Double.MAX_VALUE;
+        double transMaxX = 0;
+        double transMinY = Double.MAX_VALUE;
+        double transMaxY = 0;
+        double transMinZ = Double.MAX_VALUE;
+        double transMaxZ = 0;
         for(Point3d originalPoint : originalPointList) {
             Point3d newPoint = new Point3d();
             transformation.transform(originalPoint, newPoint);
@@ -155,20 +173,29 @@ public class MountainController {
 //                        points2write.add(new double[]{newPoint.x, newPoint.y, newPoint.z});
 //                points2writeTemp[i] = new double[]{newPoint.x, newPoint.y, newPoint.z};
             rotatedPointsTreeSet.add(newPoint);
-            if (minZ > newPoint.z) minZ = newPoint.z;
-            if (maxZ < newPoint.z) maxZ = newPoint.z;
+
+            if (transMinX > newPoint.x) transMinX = newPoint.x;
+            if (transMaxX < newPoint.x) transMaxX = newPoint.x;
+
+            if (transMinY > newPoint.y) transMinY = newPoint.y;
+            if (transMaxY < newPoint.y) transMaxY = newPoint.y;
+
+            if (transMinZ > newPoint.z) transMinZ = newPoint.z;
+            if (transMaxZ < newPoint.z) transMaxZ = newPoint.z;
             i++;
         }
 
-        double currentMaxZDepth = minZ + zDepthFactor;
+//        JniLibraryHelpers.writePointList(points2writeTemp, INPUT_FILE_NAME, DATA_FOLDER + 123 + "pb.laz", 3);
+
+        double currentMaxZDepth = transMinZ + zDepthFactor;
         Iterator<Point3d> treeSetIterator = rotatedPointsTreeSet.iterator();
         int pointNumCurrent = 0;
         SortedSet<Point3d> pointsCurrent;
         while (treeSetIterator.hasNext()) {
             Point3d point = treeSetIterator.next();
-            if (point.z > currentMaxZDepth) { //reached current threshold, find missing points for current points
+            if (point.z > currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
                 pointsCurrent = rotatedPointsTreeSet.headSet(point);
-                List<double[]> dd = Main.testMountains(pointsCurrent.stream().map(p -> new double[]{p.x, p.y, p.z}).toArray(double[][]::new));
+                List<double[]> dd = Main.testMountains(pointsCurrent.stream().map(p -> new double[]{p.x, p.y, p.z}).toArray(double[][]::new), transMinX, transMaxX, transMinY, transMaxY);
                 JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(dd), INPUT_FILE_NAME, DATA_FOLDER + pointNumCurrent + outputName, (tempCount % 6)+1);
 
                 //dodaj nove tocke v treeset

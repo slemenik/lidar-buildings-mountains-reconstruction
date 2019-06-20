@@ -21,12 +21,20 @@ public class EvenFieldController {
                                     //todo vse double točke priapdajo specifičnemu polju, potem nebomo rabili v
                                     //todo getBooleanPointField() povprečiti thirdDimInfo vrednosti
 
-    public EvenFieldController(double[][] arr, double pointsSpace) {
+    public EvenFieldController(double[][] arr, double pointsSpace) { //todo remove in the future
         setBounds(arr);
         this.pointsSpace = pointsSpace;
     }
 
     public EvenFieldController(){}
+
+    public EvenFieldController(double minX, double maxX, double minY, double maxY, double pointsSpace) {
+        this.minX = minX;
+        this.maxX = maxX;
+        this.minY = minY;
+        this.maxY = maxY;
+        this.pointsSpace = pointsSpace;
+    }
 
 
 
@@ -104,20 +112,20 @@ public class EvenFieldController {
 
         int indexX = 0;
         int indexY = 0;
-        double temp = 0;
+//        double temp = 0;
         try {
             for (double[] arrEl : arr) {
-                temp = arrEl[1]; //TODO temp - zbriši temp, arrEl je hardcodiran, naredi da nebo
-                indexX = Integer.min(point2Index(arrEl[1], minX, pointsSpace), field.length - 1);
-                indexY = Integer.min(point2Index(arrEl[2], minY, pointsSpace), field[0].length - 1);
+//                temp = arrEl[1]; //TODO temp - zbriši temp, arrEl je hardcodiran, naredi da nebo
+                indexX = Integer.min(point2Index(arrEl[0], minX, pointsSpace), field.length - 1);
+                indexY = Integer.min(point2Index(arrEl[1], minY, pointsSpace), field[0].length - 1);
                 field[indexX][indexY] = true; //points exists
-                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[0] : (arrEl[0]+thirdDimInfo[indexX][indexY])/2; //average
+                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[2] : (arrEl[2]+thirdDimInfo[indexX][indexY])/2; //average
             }
         } catch (Exception e) {
             System.out.println("error");
             System.out.println(indexX);
             System.out.println(indexY);
-            System.out.println(temp);
+            System.out.println(e);
         }
 
         return field;
@@ -127,10 +135,10 @@ public class EvenFieldController {
 
     public List<double[]> fillHoles(double[][]  arr) {
         System.out.println("method fillHoles()");
-        boolean[][] fieldAllPoints = getBooleanPointField(arr);
-        boolean[][] boundaryField = getBoundaryField(fieldAllPoints);
+        boolean[][] fieldAllPoints = getBooleanPointField(arr); //boolean field of projection where value==true if point exists
+        boolean[][] boundaryField = getBoundaryField(fieldAllPoints); //boolean field, subset of fieldAllPoints, only boundary points are true
 
-        List<int[]> pointsToInsert = new ArrayList<>();
+        List<int[]> pointsToInsert = new ArrayList<>(); //list of indices, index x and y of fieldAllPoints represent new point to insert
 
        for (int i = 0; i< fieldAllPoints.length; i++) {
            for (int j = 0; j < fieldAllPoints[i].length; j++) {
@@ -288,7 +296,7 @@ public class EvenFieldController {
                 if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE}, interpolation )) { //todo explore why
                     thirdDimInfo[indexX][indexY] = newTemp; // sprotno popravljanje oz dopolnjevanje tretje dimenzije
                 }
-                result.add(new double[]{newTemp, newX, newY});//temp, because x = 0, y = x, z = y
+                result.add(new double[]{newX, newY, newTemp});//temp, because x = 0, y = x, z = y
             }
 //            System.out.println("result.size() is " + result.size() + ", must be " + requiredSize);
 
@@ -297,9 +305,9 @@ public class EvenFieldController {
     }
 
 
-    public boolean [][] getBoundaryField(boolean [][] field) { //growth distance algorithm
+    public static boolean [][] getBoundaryField(boolean [][] field) { //growth distance algorithm
 
-        int K = 2;
+        int K = 2;//temp
         boolean [][] newField = new boolean[field.length][field[0].length];
 
         int firstX = -1;
