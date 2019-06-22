@@ -14,6 +14,7 @@ import javax.vecmath.Vector3d;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import delaunay_triangulation.Delaunay_Triangulation;
 import org.locationtech.jts.geom.Coordinate;
@@ -27,7 +28,7 @@ public class MountainController {
     public String dmrFileName;
     public String outputName;
     public static double similarAngleToleranceDegrees = 10;
-    public static double zDepthFactor = 100;
+    public static double numberOfSegments = 100;
 
     public int tempStopCount = 0;
     private int tempCount = 0;
@@ -41,7 +42,7 @@ public class MountainController {
     private List<Point3d> originalPointList = new ArrayList<>();
     private List<Point3d> transformedPointList = new ArrayList<>();
     private List<Point3d> points2write = new ArrayList<>();
-    private double[][] points2writeTemp;
+    public double[][] points2writeTemp;
 
     private double originalMaxX = 0;
     private double originalMinX = 0;
@@ -146,7 +147,8 @@ public class MountainController {
                 return 0; //if point is exactly the same, return 0 so there are no duplicates
             } else {
                 //in case of not being duplicates, order them by z
-                return Double.compare(p1.z, p2.z);
+//                return Double.compare(p1.z, p2.z); //lowset to highest
+                return Double.compare(p2.z, p1.z); //highest to lowest
             }
         });
 
@@ -185,26 +187,44 @@ public class MountainController {
             i++;
         }
 
-//        JniLibraryHelpers.writePointList(points2writeTemp, INPUT_FILE_NAME, DATA_FOLDER + 123 + "pb.laz", 3);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), INPUT_FILE_NAME, DATA_FOLDER + "originalpb.laz", 5);
 
-        double currentMaxZDepth = transMinZ + zDepthFactor;
+//        double currentMaxZDepth = transMinZ + numberOfSegments;
+        double fragmentSize = (transMaxZ- transMinZ)/numberOfSegments;
+        double currentMaxZDepth = transMaxZ - fragmentSize;
         Iterator<Point3d> treeSetIterator = rotatedPointsTreeSet.iterator();
         int pointNumCurrent = 0;
+        int tempFileWritten = 0;
         SortedSet<Point3d> pointsCurrent;
+        List<double[]> temp = new ArrayList<>();
         while (treeSetIterator.hasNext()) {
             Point3d point = treeSetIterator.next();
-            if (point.z > currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
+//            if (point.z > currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
+            if (point.z < currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
                 pointsCurrent = rotatedPointsTreeSet.headSet(point);
+//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent), INPUT_FILE_NAME, DATA_FOLDER + tempFileWritten++ + " org22"+ outputName, (tempFileWritten % 5));
                 List<double[]> dd = Main.testMountains(pointsCurrent.stream().map(p -> new double[]{p.x, p.y, p.z}).toArray(double[][]::new), transMinX, transMaxX, transMinY, transMaxY);
-                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(dd), INPUT_FILE_NAME, DATA_FOLDER + pointNumCurrent + outputName, (tempCount % 6)+1);
-
-                //dodaj nove tocke v treeset
+//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(dd), INPUT_FILE_NAME, DATA_FOLDER + tempFileWritten++ +"22" + outputName, (tempFileWritten % 5)+1);
+//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(dd.stream().map(dd2->{
+//                    dd2[2]=0;
+//                    return dd2;
+//                }).collect(Collectors.toList())), INPUT_FILE_NAME, DATA_FOLDER + tempFileWritten++ +"22" + outputName, (tempFileWritten % 5)+1);
+                temp.addAll(dd);
+                //add new points of current segment to treeSet, treat them as other points
+                HelperClass.printLine("dodane nove točke", dd.size());
+                HelperClass.printLine("prej je bilo točk", rotatedPointsTreeSet.size());
+                rotatedPointsTreeSet.addAll(dd.stream().map(p -> new Point3d(p[0], p[1], p[2])).collect(Collectors.toList()));
+                HelperClass.printLine("zdej jih je ", rotatedPointsTreeSet.size());
                 treeSetIterator = rotatedPointsTreeSet.iterator(); //reset iterator
-                currentMaxZDepth += zDepthFactor;
-                System.out.println("reset iterator");
+                currentMaxZDepth -= fragmentSize;
+//                currentMaxZDepth += numberOfSegments;
+                System.out.println("reset iterator, we read points: " + pointNumCurrent);
+                pointNumCurrent=0;
             }
             pointNumCurrent++;
         }
+
+        points2writeTemp = HelperClass.toResultDoubleArray(temp);
 
 //        Main.testBoundary()
 

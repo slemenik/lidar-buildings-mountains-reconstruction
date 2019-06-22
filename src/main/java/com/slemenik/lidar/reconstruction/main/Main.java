@@ -3,9 +3,7 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
@@ -35,7 +33,7 @@ public class Main {
     private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
     private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
-    private static  int COLOR = 6; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3-temno zelena;
+    private static  int COLOR = 5; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3-temno zelena;
 
     private static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 10;
 
@@ -87,30 +85,30 @@ public class Main {
             arr2 = testMountainController(args);
         }
 
-        TreeSet<Integer> ts = new TreeSet<>();
-        ts.add(1);
-        ts.add(1-2);
-        ts.add(22);
-        ts.add(1432);
-        ts.add(4);
-
-        Iterator<Integer> it = ts.iterator();
-        int ii = 0;
-        while(it.hasNext()) {
-            ii++;
-            int i = it.next();
-            System.out.println(i);
-//            if (i == 22) {
-//                ts.add(-20);
-//                ts.add(4);
-////                it = ts.iterator();
+//        TreeSet<Integer> ts = new TreeSet<>();
+//        ts.add(1);
+//        ts.add(1-2);
+//        ts.add(22);
+//        ts.add(1432);
+//        ts.add(4);
+//
+//        Iterator<Integer> it = ts.iterator();
+//        int ii = 0;
+//        while(it.hasNext()) {
+//            ii++;
+//            int i = it.next();
+//            System.out.println(i);
+////            if (i == 22) {
+////                ts.add(-20);
+////                ts.add(4);
+//////                it = ts.iterator();
+////            }
+//            if (ii > 15) {
+//                break;
 //            }
-            if (ii > 15) {
-                break;
-            }
-
-        }
-        System.out.print(ts.headSet(2));
+//
+//        }
+//        System.out.print(ts.headSet(2));
 
 
 
@@ -143,15 +141,15 @@ public class Main {
         mc.dmrFileName = DMR_FILE_NAME;
         mc.tempStopCount = args.length;
         MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
-        MountainController.zDepthFactor = 100; //temp
+        MountainController.numberOfSegments = 7; //temp
 //        double[][] newPoints = mc.start();
-        double[][] newPoints = null;
 
         //temp///
         Transform3D transformation = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226);
         mc.calculateNewPoints(transformation);
-        /////////
-        OUTPUT_FILE_NAME = DATA_FOLDER + "tests" + args.length + ".laz";
+        double[][] newPoints = mc.points2writeTemp;
+        ////////
+        OUTPUT_FILE_NAME = DATA_FOLDER + "test2s" + args.length + ".laz";
         return newPoints;
     }
 
@@ -182,7 +180,7 @@ public class Main {
 
     public static List<double[]> testMountains(double[][] arr, double minX, double maxX, double minY, double maxY) {
         EvenFieldController efc = new EvenFieldController( minX, maxX, minY, maxY, CREATED_POINTS_SPACING);
-        efc.interpolation = Interpolation.SPLINE;
+        efc.interpolation = Interpolation.BILINEAR;
         return efc.fillHoles(arr);
     }
 

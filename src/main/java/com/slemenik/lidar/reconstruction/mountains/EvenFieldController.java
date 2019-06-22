@@ -119,7 +119,8 @@ public class EvenFieldController {
                 indexX = Integer.min(point2Index(arrEl[0], minX, pointsSpace), field.length - 1);
                 indexY = Integer.min(point2Index(arrEl[1], minY, pointsSpace), field[0].length - 1);
                 field[indexX][indexY] = true; //points exists
-                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[2] : (arrEl[2]+thirdDimInfo[indexX][indexY])/2; //average
+                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[2] : Double.max(arrEl[2], thirdDimInfo[indexX][indexY]); //temp
+//                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[2] : (arrEl[2]+thirdDimInfo[indexX][indexY])/2; //average
             }
         } catch (Exception e) {
             System.out.println("error");
@@ -306,7 +307,7 @@ public class EvenFieldController {
 
 
     public static boolean [][] getBoundaryField(boolean [][] field) { //growth distance algorithm
-
+        System.out.println("method getBoundaryField()");
         int K = 2;//temp
         boolean [][] newField = new boolean[field.length][field[0].length];
 
