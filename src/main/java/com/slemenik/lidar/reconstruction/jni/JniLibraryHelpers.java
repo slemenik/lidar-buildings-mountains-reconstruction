@@ -47,7 +47,7 @@ public class JniLibraryHelpers {
 //        for (int i = 0; i<list.length;i++) {
 //            System.out.println(new Coordinate(list[i][0],  list[i][1], list[i][2]));
 //        }
-        return myInstance.writeJNIPointList(list,inputFileName, outputFileName, intColor);
+        return myInstance.writeJNIPointList(list,inputFileName + ".laz", outputFileName + ".laz", intColor);
     }
 
     public static double[] getMinMaxHeight(double x, double y, double threshold, String inputFileName) {
@@ -65,7 +65,7 @@ public class JniLibraryHelpers {
     public static double[][] getPointArray(String inputFileName) {
         System.out.println("method JNI.getPointArray(), filename: " + inputFileName);
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
-        return myInstance.getJNIPointArray(inputFileName);
+        return myInstance.getJNIPointArray(inputFileName + ".laz");
     }
 
 

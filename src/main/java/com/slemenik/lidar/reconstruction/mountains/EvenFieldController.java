@@ -136,6 +136,10 @@ public class EvenFieldController {
 
     public List<double[]> fillHoles(double[][]  arr) {
         System.out.println("method fillHoles()");
+        if (arr.length == 0) {
+            System.out.println("empty array param. return empty list");
+            return new ArrayList<>();
+        }
         boolean[][] fieldAllPoints = getBooleanPointField(arr); //boolean field of projection where value==true if point exists
         boolean[][] boundaryField = getBoundaryField(fieldAllPoints); //boolean field, subset of fieldAllPoints, only boundary points are true
 
@@ -362,7 +366,11 @@ public class EvenFieldController {
 
                          find = true;
                          break; //break for RN
-                    } //end if
+                    } else {
+                        int atemp = 5;
+                        //todo do tega nikoli ne pride, ergo je IF za bv
+                        //+ todo poglej kdaj pride do neskončne zanke in kako lahko s K in i vplivaš
+                    }//end if
                 } //end for
             } //end while
             if (pX == firstX && pY == firstY && !firstRound) {
@@ -373,6 +381,10 @@ public class EvenFieldController {
                 newField[pX][pY] = true;
                 firstRound = false;
                 count++;
+                if (count > field.length * field[0].length) { //we basically went over whole field, still did not find solution
+                    K++;
+                    count = 0;
+                }
             }
         }// end while
         System.out.println("count " + count);

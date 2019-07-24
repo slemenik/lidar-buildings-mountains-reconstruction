@@ -4,7 +4,9 @@ import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
 import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
 import com.slemenik.lidar.reconstruction.mountains.EvenFieldController;
@@ -14,6 +16,7 @@ import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
+import org.geotools.util.IntegerList;
 
 import javax.media.j3d.Transform3D;
 
@@ -22,9 +25,9 @@ public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    public static final String INPUT_FILE_NAME = DATA_FOLDER + "frag1.laz";//"triglav okrnjen.laz";
-    private static String OUTPUT_FILE_NAME = DATA_FOLDER + "out.laz";
-    private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp.laz";
+    public static final String INPUT_FILE_NAME = DATA_FOLDER + "original+odsek";//"triglav okrnjen.laz";
+    public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out";
+    private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
@@ -40,6 +43,7 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("start main");
         long startTime = System.nanoTime();
+        tempTestFunction();
         double[][] pointListDoubleArray = mainTest(args);
 
         if (pointListDoubleArray.length > 0) {
@@ -67,6 +71,18 @@ public class Main {
         long time = TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS);
         System.out.println("Sekunde izvajanja: " + time);
         System.out.println("end");
+    }
+
+    public static void tempTestFunction() {
+        TreeSet<Integer> a = new TreeSet<>();
+        a.add(1);
+        a.add(4);
+        a.add(5);
+        a.add(7);
+        a.add(122);
+
+
+
     }
 
     private static double[][] mainTest(String[] args) {
@@ -141,7 +157,7 @@ public class Main {
         mc.dmrFileName = DMR_FILE_NAME;
         mc.tempStopCount = args.length;
         MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
-        MountainController.numberOfSegments = 7; //temp
+        MountainController.numberOfSegments = 18; //temp - 19 is infinte loop
 //        double[][] newPoints = mc.start();
 
         //temp///
@@ -149,7 +165,7 @@ public class Main {
         mc.calculateNewPoints(transformation);
         double[][] newPoints = mc.points2writeTemp;
         ////////
-        OUTPUT_FILE_NAME = DATA_FOLDER + "test2s" + args.length + ".laz";
+        OUTPUT_FILE_NAME = DATA_FOLDER + "allTheAddedPoints";
         return newPoints;
     }
 

@@ -39,11 +39,11 @@ public class HelperClass {
 
     }
 
-    public static void printLine(Object... params){
+    public static void printLine(String splitter, Object... params){
         for (int i = 0; i<params.length; i++) {
             System.out.print(params[i]);
             if (i != params.length-1) {
-                System.out.print(", ");
+                System.out.print(splitter);
             }
         }
         System.out.println();
