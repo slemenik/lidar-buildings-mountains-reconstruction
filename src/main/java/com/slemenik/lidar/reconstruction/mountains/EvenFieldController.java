@@ -7,6 +7,8 @@ import java.util.*;
 //import org.apache.commons.math3.a
 
 import static com.slemenik.lidar.reconstruction.buildings.ShpController.getBoundsFromFilename;
+
+import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -51,11 +53,12 @@ public class EvenFieldController {
         return field;
     }
 
-    private static int point2Index(double coordinate, double min, double pointSpace) {
-        return (int) ((coordinate - min) / pointSpace);
+    public static int point2Index(double coordinate, double min, double pointSpace) {//temp spremeni v private
+//        return (int) ((coordinate - min) / pointSpace);
+        return (int) (Math.round((coordinate - min) / pointSpace));
     }
 
-    private static double index2Point(int x, double min, double pointSpace) {
+    public static double index2Point(int x, double min, double pointSpace) {//temp spremeni v private
         return ((double) x) * pointSpace + min;
     }
 
@@ -115,12 +118,17 @@ public class EvenFieldController {
 //        double temp = 0;
         try {
             for (double[] arrEl : arr) {
-//                temp = arrEl[1]; //TODO temp - zbriši temp, arrEl je hardcodiran, naredi da nebo
+
+
                 indexX = Integer.min(point2Index(arrEl[0], minX, pointsSpace), field.length - 1);
                 indexY = Integer.min(point2Index(arrEl[1], minY, pointsSpace), field[0].length - 1);
                 field[indexX][indexY] = true; //points exists
                 thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[2] : Double.max(arrEl[2], thirdDimInfo[indexX][indexY]); //temp
 //                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[2] : (arrEl[2]+thirdDimInfo[indexX][indexY])/2; //average
+
+                if (HelperClass.isBetween(arrEl[0], 410839.680, 410839.699) && HelperClass.isBetween(arrEl[1], 137211.260, 137211.280)) {
+                    int tempa = 5;
+                }
             }
         } catch (Exception e) {
             System.out.println("error");
@@ -141,7 +149,10 @@ public class EvenFieldController {
             return new ArrayList<>();
         }
         boolean[][] fieldAllPoints = getBooleanPointField(arr); //boolean field of projection where value==true if point exists
+        HelperClass.createFieldPointFile(fieldAllPoints);
         boolean[][] boundaryField = getBoundaryField(fieldAllPoints); //boolean field, subset of fieldAllPoints, only boundary points are true
+
+        HelperClass.createFieldPointFile(boundaryField);
 
         List<int[]> pointsToInsert = new ArrayList<>(); //list of indices, index x and y of fieldAllPoints represent new point to insert
 
@@ -261,6 +272,7 @@ public class EvenFieldController {
 
 //
 
+    //ussage: testBoundary() , testMountainGrid3d
     public List<double[]> getPointsFromFieldArray(boolean[][] field, boolean writeWhenBoolean) {
         List<double[]> result = new ArrayList<>();
         for (int x = 0; x<field.length; x++) {
@@ -292,6 +304,12 @@ public class EvenFieldController {
             int indexY = fieldIndex[1];
             double newX = index2Point(indexX, minX, pointsSpace);
             double newY = index2Point(indexY, minY, pointsSpace);
+            if (indexX == 512 && indexY == 167) {
+                int tempa=5;
+            }
+            if (HelperClass.isBetween(newX, 410839.680, 410839.699) && HelperClass.isBetween(newY, 137211.260, 137211.280)) {
+                int tempa = 5;
+            }
             double newTemp = InterpolationController.getThirdDim(thirdDimInfo, indexX, indexY, interpolation);
 //todo tukaj se pri interpolaciji večkrat kličejo ene in iste točke, popravi, npr ko je indexX skos isti, se potem na podlagi tega iste interpolacije računajo
             if (newTemp == -1) { //no average found, we will calculate later
@@ -355,9 +373,9 @@ public class EvenFieldController {
                     int qX = q[0];
                     int qY = q[1];
                     if (!field[qX][qY]) {
-                        continue; //current field are not a point, but are empty, so we skip it
+                        continue; //at current position there is no point, so this is not q
                     }
-                    if (is8NeighborhoodEmpty(field, qX, qY)) {
+                    if (is8NeighborhoodEmpty(field, qX, qY, true)) {
                          prevX = pX;
                          prevY = pY;
 
@@ -382,8 +400,16 @@ public class EvenFieldController {
                 firstRound = false;
                 count++;
                 if (count > field.length * field[0].length) { //we basically went over whole field, still did not find solution
-                    K++;
+                    //K++;
+                    //stop = true;
                     count = 0;
+                    HelperClass.createFieldPointFile(newField);
+                    return newField;
+
+                }
+                if (K == 100) {
+                    HelperClass.createFieldPointFile(newField);
+                    K++;
                 }
             }
         }// end while
@@ -391,25 +417,40 @@ public class EvenFieldController {
         return newField;
     }
 
-    private static boolean is4NeighborhoodEmpty(boolean [][] field, int x, int y) {
-        return (x + 1 >= field.length
+    private static boolean is4NeighborhoodEmpty(boolean [][] field, int x, int y, boolean outsideBoundsIsEmpty) {
+        return outsideBoundsIsEmpty ? (
+                x + 1 >= field.length
                 || x - 1 < 0
                 || y + 1 >= field[0].length
-                || y - 1 < 0 // if index out of bounds, it is boundary
-                || !field[x + 1][y])
+                || y - 1 < 0
+                || !field[x + 1][y]
                 || !field[x - 1][y]
                 || !field[x][y + 1]
-                || !field[x][y - 1];
+                || !field[x][y - 1]
+        ) : (
+                x + 1 < field.length && !field[x + 1][y]
+                || x - 1 >= 0 && !field[x - 1][y]
+                || y + 1 < field[0].length && !field[x][y + 1]
+                || y - 1 >= 0 && !field[x][y - 1]
+        );
 
     }
 
-    private static boolean is8NeighborhoodEmpty(boolean [][] field, int x, int y) {
-        return is4NeighborhoodEmpty( field, x, y) ||
+    private static boolean is4NeighborhoodEmpty(boolean [][] field, int x, int y) {
+        return is4NeighborhoodEmpty(field, x, y, true);
+    }
+
+    private static boolean is8NeighborhoodEmpty(boolean [][] field, int x, int y, boolean outsideBoundsIsEmpty) {
+        return is4NeighborhoodEmpty( field, x, y, outsideBoundsIsEmpty) || // if outsideBoundsIsEmpty == true && is4NeighborhoodEmpty == false, it defenetly is NOT out of bounds
                 (x + 1 < field.length && y + 1 < field[0].length && !field[x + 1][y+1])
                 || (x - 1 >= 0 && y - 1 >= 0 && !field[x - 1][y-1])
                 || (x + 1 < field.length && y - 1 >= 0 && !field[x+1][y-1])
                 || (x - 1 >= 0 && y + 1 < field[0].length && !field[x-1][y+1]);
 
+    }
+
+    private static boolean is8NeighborhoodEmpty(boolean [][] field, int x, int y) {
+        return is4NeighborhoodEmpty(field, x, y, true);
     }
 
     private static List<int[]> RN4(int pX, int pY, int prevX, int prevY, int i) {
@@ -423,6 +464,7 @@ public class EvenFieldController {
         UP
     }
 
+    /*return list of indices {[x,y], [x2,y2],... } that surround point px,py */
     public static List<int[]> RN8(int pX, int pY, int prevX, int prevY, int i, int lengthX, int lengthY) {
         List<int[]> result = new ArrayList<>();
         if (prevX == -1 || prevY == -1) {

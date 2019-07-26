@@ -153,7 +153,6 @@ public class InterpolationController {
             bottomNeighbourIndex--;
         }
 
-
         LinearInterpolator li = new LinearInterpolator();
         PolynomialSplineFunction functionX = li.interpolate(new double[]{leftNeighbourIndex, rightNeighbourIndex}, new double[]{thirdDimInfo[leftNeighbourIndex][indexY], thirdDimInfo[rightNeighbourIndex][indexY]});
         PolynomialSplineFunction functionY = li.interpolate(new double[]{bottomNeighbourIndex, upperNeighbourIndex}, new double[]{thirdDimInfo[indexX][bottomNeighbourIndex], thirdDimInfo[indexX][upperNeighbourIndex]});
