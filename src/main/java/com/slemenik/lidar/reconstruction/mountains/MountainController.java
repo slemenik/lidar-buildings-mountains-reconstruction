@@ -188,15 +188,15 @@ public class MountainController {
         }
 
         OUTPUT_FILE_NAME = INPUT_FILE_NAME + "+rotate";
-        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), INPUT_FILE_NAME, OUTPUT_FILE_NAME, tempColor++);
-
-        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet.stream().map(dd2->{
-            return new Point3d(dd2.x, dd2.y, 0);
-         }).collect(Collectors.toList())), INPUT_FILE_NAME, OUTPUT_FILE_NAME+".flat", tempColor++);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), INPUT_FILE_NAME, OUTPUT_FILE_NAME, tempColor++);
+//
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet.stream().map(dd2->{
+//            return new Point3d(dd2.x, dd2.y, 0);
+//         }).collect(Collectors.toList())), INPUT_FILE_NAME, OUTPUT_FILE_NAME+".flat", tempColor++);
 
 //        double currentMaxZDepth = transMinZ + fragmentSize; // we start in front and move to back until maxDepth
         double fragmentSize = (transMaxZ- transMinZ)/numberOfSegments;
-        double currentMaxZDepth = transMaxZ - fragmentSize; // we start at the back (1st point has highest Z, move to front (each next point has smaller z)
+        Double currentMaxZDepth = transMaxZ - fragmentSize; // we start at the back (1st point has highest Z, move to front (each next point has smaller z)
         Iterator<Point3d> treeSetIterator = rotatedPointsTreeSet.iterator();
         int pointNumCurrent = 0;
         int tempFileWritten = 0;
@@ -209,21 +209,32 @@ public class MountainController {
                 pointsCurrent = rotatedPointsTreeSet.headSet(point);
 
                 String outputfileTemp = OUTPUT_FILE_NAME + ".segmentTo" + currentMaxZDepth;
-                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent), INPUT_FILE_NAME, outputfileTemp, (tempColor++));
-                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent.stream().map(dd2->{
-                    return new Point3d(dd2.x, dd2.y, 0);
-                }).collect(Collectors.toList())), INPUT_FILE_NAME, outputfileTemp + ".flat", tempColor++);
+//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent), INPUT_FILE_NAME, outputfileTemp, (tempColor++));
+//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent.stream().map(dd2->{
+//                    return new Point3d(dd2.x, dd2.y, 0);
+//                }).collect(Collectors.toList())), INPUT_FILE_NAME, outputfileTemp + ".flat", tempColor++);
 
 
                 List<double[]> missingPoints = Main.testMountains(pointsCurrent.stream().map(p -> new double[]{p.x, p.y, p.z}).toArray(double[][]::new), transMinX, transMaxX, transMinY, transMaxY);
                 outputfileTemp += ".missingPoints";
-                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), INPUT_FILE_NAME, outputfileTemp, (tempColor++));
-
-                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2->{
-                    return new double[]{dd2[0], dd2[1], 0};
-                }).collect(Collectors.toList())), INPUT_FILE_NAME, outputfileTemp + ".flat", tempColor++);
+//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), INPUT_FILE_NAME, outputfileTemp, (tempColor++));
+//
+//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2->{
+//                    return new double[]{dd2[0], dd2[1], 0};
+//                }).collect(Collectors.toList())), INPUT_FILE_NAME, outputfileTemp + ".flat", tempColor++);
 
                 temp.addAll(missingPoints);
+                for (double[] p: missingPoints) {
+                    //limit new added points to current segment
+//                    if (p[2])
+                    p[2] = Math.max(p[2], currentMaxZDepth);
+//                    p[2] = Math.min(p[2], currentMaxZDepth + fragmentSize);
+                }
+
+
+                // todo poglej a je kul da je tam povprečje vseh točk na istmu indexu, potem probavaj z različnimi interpolacijami
+
+
                 //add new points of current segment to treeSet, treat them as other points
                 HelperClass.printLine(" ", "najdene nove točke: ", missingPoints.size());
                 HelperClass.printLine(" ","prej je bilo točk: ", rotatedPointsTreeSet.size());

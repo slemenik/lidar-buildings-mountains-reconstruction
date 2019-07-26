@@ -1,5 +1,7 @@
 package com.slemenik.lidar.reconstruction.main;
 
+import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
+
 import javax.vecmath.Point3d;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +50,18 @@ public class HelperClass {
         }
         System.out.println();
 
+    }
+
+    public static void createFieldPointFile(boolean[][] field) {
+        List<double[]> points = new ArrayList<>();
+        for (int i = 0; i< field.length;i++) {
+            for (int j = 0; j< field[i].length;j++) {
+                if (field[i][j]) {
+                    points.add(new double[]{i,j,0});
+                }
+            }
+        }
+        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTest", 0);
     }
 
     // returns true if c is between a and b

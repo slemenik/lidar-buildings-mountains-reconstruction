@@ -74,13 +74,31 @@ public class Main {
     }
 
     public static void tempTestFunction() {
-        TreeSet<Integer> a = new TreeSet<>();
-        a.add(1);
-        a.add(4);
-        a.add(5);
-        a.add(7);
-        a.add(122);
 
+//        public static int point2Index(double coordinate, double min, double pointSpace) {//temp spremeni v private
+//            return (int) ((coordinate - min) / pointSpace);
+//        }
+//
+//        public static double index2Point(int x, double min, double pointSpace) {//temp spremeni v private
+//            return ((double) x) * pointSpace + min;
+//        }
+
+//        System.out.println(EvenFieldController.point2Index(410839.68766673, 410531.88766673254, 0.6));
+//        double min = 410531.88766673254;
+//        System.out.println(EvenFieldController.point2Index(410839.6876667325, min, 0.6));
+//        double coordinate = 410839.6876667325;
+//
+//        double pointSpace = 0.6;
+//        double temp = (coordinate - min) / pointSpace;
+//
+//        System.out.println(EvenFieldController.index2Point(512, min, 0.6));
+//        System.out.println(EvenFieldController.index2Point(513, min, 0.6));
+
+
+        int[][] avc = new int[90][20];
+        System.out.println(avc[1][1]);
+
+        return;
 
 
     }
@@ -157,7 +175,7 @@ public class Main {
         mc.dmrFileName = DMR_FILE_NAME;
         mc.tempStopCount = args.length;
         MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
-        MountainController.numberOfSegments = 18; //temp - 19 is infinte loop
+        MountainController.numberOfSegments = 25; //temp - 19 is infinte loop
 //        double[][] newPoints = mc.start();
 
         //temp///

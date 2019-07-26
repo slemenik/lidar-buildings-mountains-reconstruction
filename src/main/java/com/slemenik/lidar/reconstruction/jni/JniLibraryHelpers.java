@@ -14,6 +14,8 @@ public class JniLibraryHelpers {
 //        System.loadLibrary("Project2");
     }
 
+    private static int colorTemp = 0;
+
     private native void writeJNIPoint(double x, double y, double z);
     private native int writeJNIPointList(double[][] pointsArray, String inputFileName, String outputFileName, int classification);
     private native double[] getJNIMinMaxHeight(double x, double y, double radius, String inputFileName );
@@ -40,6 +42,10 @@ public class JniLibraryHelpers {
     }
 
     public static Integer writePointList(double[][] list, String inputFileName, String outputFileName, int intColor) {
+        if (list.length == 0) {
+            System.out.println("empty list, nothing to write.");
+            return -1;
+        }
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         System.out.println("klic funkcije writeJNIPointList()");
 
