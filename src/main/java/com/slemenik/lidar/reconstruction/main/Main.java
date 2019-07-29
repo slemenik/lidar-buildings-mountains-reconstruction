@@ -21,19 +21,20 @@ import delaunay_triangulation.Point_dt;
 import org.geotools.util.IntegerList;
 
 import javax.media.j3d.Transform3D;
+import javax.vecmath.Point3d;
 
 
 public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    public static final String INPUT_FILE_NAME = DATA_FOLDER + "410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
+    public static final String INPUT_FILE_NAME = DATA_FOLDER + "original+odsek";//"410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
     public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
-    private static final double CREATED_POINTS_SPACING = 0.6;//2.0;//0.2;
+    public static final double CREATED_POINTS_SPACING = 0.6;//2.0;//0.2;
     private static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
     private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     private static final boolean CREATE_TEMP_FILE = true;
@@ -101,8 +102,6 @@ public class Main {
 //        System.out.println(EvenFieldController.index2Point(513, min, 0.6));
 
 
-        int[][] avc = new int[90][20];
-        System.out.println(avc[1][1]);
 
         return;
 
@@ -178,7 +177,7 @@ public class Main {
         OUTPUT_FILE_NAME = DATA_FOLDER + "triglav grid diskretno.laz";
         EvenFieldController ef = new EvenFieldController(arr, CREATED_POINTS_SPACING);
         ef.interpolation = Interpolation.OWN_VALUE;
-        return ef.getPointsFromFieldArray(ef.getBooleanPointField(arr), true);
+        return ef.getPointsFromFieldArray(ef.getBooleanPointField(Arrays.asList(arr).stream().map(d -> new Point3d(d[0], d[1], d[2])).collect(Collectors.toList())), true);
     }
 
     public static List<double[]> testBoundary() {
@@ -189,7 +188,7 @@ public class Main {
     public static List<double[]> testBoundary(double[][] arr) {
 
         EvenFieldController mc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
-        boolean[][] field = mc.getBooleanPointField(arr);
+        boolean[][] field = mc.getBooleanPointField(Arrays.asList(arr).stream().map(d -> new Point3d(d[0], d[1], d[2])).collect(Collectors.toList()));
         boolean[][] newField = mc.getBoundaryField(field);
 //        boolean[][] newField = field;
 
@@ -197,26 +196,26 @@ public class Main {
 
     }
 
-    public static List<double[]> testMountains(double[][] arr, double minX, double maxX, double minY, double maxY) {
-        EvenFieldController efc = new EvenFieldController( minX, maxX, minY, maxY, CREATED_POINTS_SPACING);
-        efc.interpolation = Interpolation.BICUBIC;
-        return efc.fillHoles(arr);
-    }
-
-    public static List<double[]> testMountains(double[][] arr) {
-        EvenFieldController efc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
-        efc.interpolation = Interpolation.SPLINE;
-        return efc.fillHoles(arr);
-    }
-
-    public static List<double[]> testMountains(Interpolation interp) {
-        System.out.println("method testMountains()");
-        OUTPUT_FILE_NAME = DATA_FOLDER + "triglav4 spacing-"+ CREATED_POINTS_SPACING + " interpolation-"+ interp.toString()+ ".laz";
-        double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
-        EvenFieldController efc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
-        efc.interpolation = interp;
-        return efc.fillHoles(arr);
-    }
+//    public static double[][] testMountains(double[][] arr, double minX, double maxX, double minY, double maxY) {
+//        EvenFieldController efc = new EvenFieldController( minX, maxX, minY, maxY, CREATED_POINTS_SPACING);
+//        efc.interpolation = Interpolation.BICUBIC;
+//        return HelperClass.toResultDoubleArray(efc.fillHoles(arr));
+//    }
+//
+//    public static double[][] testMountains(double[][] arr) {
+//        EvenFieldController efc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
+//        efc.interpolation = Interpolation.SPLINE;
+//        return HelperClass.toResultDoubleArray(efc.fillHoles(arr));
+//    }
+//
+//    public static double[][] testMountains(Interpolation interp) {
+//        System.out.println("method testMountains()");
+//        OUTPUT_FILE_NAME = DATA_FOLDER + "triglav4 spacing-"+ CREATED_POINTS_SPACING + " interpolation-"+ interp.toString()+ ".laz";
+//        double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+//        EvenFieldController efc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
+//        efc.interpolation = interp;
+//        return HelperClass.toResultDoubleArray(efc.fillHoles(arr));
+//    }
 
     public static List<double[]> testBuildingCreation() {
         BuildingController bc = new BuildingController();

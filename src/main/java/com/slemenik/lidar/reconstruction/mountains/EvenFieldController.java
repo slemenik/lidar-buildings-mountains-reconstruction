@@ -12,6 +12,8 @@ import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 import org.apache.commons.lang3.ArrayUtils;
 
+import javax.vecmath.Point3d;
+
 public class EvenFieldController {
 
     public double minX, maxX, minY, maxY;
@@ -98,10 +100,10 @@ public class EvenFieldController {
     }
 
     /*each field is true if point exists*/
-    public boolean[][] getBooleanPointField(double[][]  arr) {
+    public boolean[][] getBooleanPointField(List<Point3d>  pointList) {
 
         System.out.println("method getBooleanPointField()");
-//        double[] bounds = getBounds(arr);
+//        double[] bounds = getBounds(pointList);
 //        double minX = bounds[0];
 //        double maxX = bounds[1];
 //        double minY = bounds[2];
@@ -117,18 +119,18 @@ public class EvenFieldController {
         int indexY = 0;
 //        double temp = 0;
         try {
-            for (double[] arrEl : arr) {
+            for (Point3d point : pointList) {
 
-
-                indexX = Integer.min(point2Index(arrEl[0], minX, pointsSpace), field.length - 1);
-                indexY = Integer.min(point2Index(arrEl[1], minY, pointsSpace), field[0].length - 1);
+                indexX = Integer.min(point2Index(point.x, minX, pointsSpace), field.length - 1);
+                indexY = Integer.min(point2Index(point.y, minY, pointsSpace), field[0].length - 1);
                 field[indexX][indexY] = true; //points exists
-                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[2] : Double.max(arrEl[2], thirdDimInfo[indexX][indexY]); //temp
+                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? point.z : Double.max(point.z, thirdDimInfo[indexX][indexY]); // todo poglej a je kul da je povprečje vseh točk na istmu indexu
+
 //                thirdDimInfo[indexX][indexY] = thirdDimInfo[indexX][indexY] == 0 ? arrEl[2] : (arrEl[2]+thirdDimInfo[indexX][indexY])/2; //average
 
-                if (HelperClass.isBetween(arrEl[0], 410839.680, 410839.699) && HelperClass.isBetween(arrEl[1], 137211.260, 137211.280)) {
-                    int tempa = 5;
-                }
+//                if (HelperClass.isBetween(arrEl[0], 410839.680, 410839.699) && HelperClass.isBetween(arrEl[1], 137211.260, 137211.280)) {
+//                    int tempa = 5;
+//                }
             }
         } catch (Exception e) {
             System.out.println("error");
@@ -142,13 +144,13 @@ public class EvenFieldController {
 //        return getPointsFromFieldArray(field, minX, minY, pointsSpace);
     }
 
-    public List<double[]> fillHoles(double[][]  arr) {
+    public List<Point3d> fillHoles(List<Point3d>  pointList) {
         System.out.println("method fillHoles()");
-        if (arr.length == 0) {
+        if (pointList.size() == 0) {
             System.out.println("empty array param. return empty list");
             return new ArrayList<>();
         }
-        boolean[][] fieldAllPoints = getBooleanPointField(arr); //boolean field of projection where value==true if point exists
+        boolean[][] fieldAllPoints = getBooleanPointField(pointList); //boolean field of projection where value==true if point exists
         HelperClass.createFieldPointFile(fieldAllPoints);
         boolean[][] boundaryField = getBoundaryField(fieldAllPoints); //boolean field, subset of fieldAllPoints, only boundary points are true
 
@@ -291,9 +293,9 @@ public class EvenFieldController {
 
 
 
-    public List<double[]> getPointsFromFieldList(List<int[]> fieldsWithPointList) {
+    public List<Point3d> getPointsFromFieldList(List<int[]> fieldsWithPointList) {
         System.out.println("method getPointsFromFieldList()");
-        List<double[]> result = new ArrayList<>();
+        List<Point3d> result = new ArrayList<>();
         int i = 0;
         int requiredSize = fieldsWithPointList.size();
         while(result.size() < requiredSize) {
@@ -304,12 +306,12 @@ public class EvenFieldController {
             int indexY = fieldIndex[1];
             double newX = index2Point(indexX, minX, pointsSpace);
             double newY = index2Point(indexY, minY, pointsSpace);
-            if (indexX == 512 && indexY == 167) {
-                int tempa=5;
-            }
-            if (HelperClass.isBetween(newX, 410839.680, 410839.699) && HelperClass.isBetween(newY, 137211.260, 137211.280)) {
-                int tempa = 5;
-            }
+//            if (indexX == 512 && indexY == 167) {
+//                int tempa=5;
+//            }
+//            if (HelperClass.isBetween(newX, 410839.680, 410839.699) && HelperClass.isBetween(newY, 137211.260, 137211.280)) {
+//                int tempa = 5;
+//            }
             double newTemp = InterpolationController.getThirdDim(thirdDimInfo, indexX, indexY, interpolation);
 //todo tukaj se pri interpolaciji večkrat kličejo ene in iste točke, popravi, npr ko je indexX skos isti, se potem na podlagi tega iste interpolacije računajo
             if (newTemp == -1) { //no average found, we will calculate later
@@ -319,7 +321,7 @@ public class EvenFieldController {
                 if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE}, interpolation )) { //todo explore why
                     thirdDimInfo[indexX][indexY] = newTemp; // sprotno popravljanje oz dopolnjevanje tretje dimenzije
                 }
-                result.add(new double[]{newX, newY, newTemp});//temp, because x = 0, y = x, z = y
+                result.add(new Point3d (newX, newY, newTemp));//temp, because x = 0, y = x, z = y
             }
 //            System.out.println("result.size() is " + result.size() + ", must be " + requiredSize);
 
