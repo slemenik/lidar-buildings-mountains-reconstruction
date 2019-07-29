@@ -69,6 +69,26 @@ public class HelperClass {
         return b > a ? c > a && c < b : c > b && c < a;
     }
 
+    public static String formatHeapSize(long v) {
+        if (v < 1024) return v + " B";
+        int z = (63 - Long.numberOfLeadingZeros(v)) / 10;
+        return String.format("%.1f %sB", (double)v / (1L << (z*10)), " KMGTPE".charAt(z));
+    }
+
+    public static void memory() {
+        // Get current size of heap in bytes
+        long heapSize = Runtime.getRuntime().totalMemory();
+
+        // Get amount of free memory within the heap in bytes. This size will increase // after garbage collection and decrease as new objects are created.
+        long heapFreeSize = Runtime.getRuntime().freeMemory();
+
+        long used = heapSize - heapFreeSize;
+        System.out.println("totalMemory "+HelperClass.formatHeapSize(heapSize));
+        System.out.println("heapFreeSize "+HelperClass.formatHeapSize(heapFreeSize));
+        System.out.println("used "+HelperClass.formatHeapSize(used));
+
+    }
+
 //    public static double[][] toResultDoubleArray(List<Point3d> list) {
 //    }
 }

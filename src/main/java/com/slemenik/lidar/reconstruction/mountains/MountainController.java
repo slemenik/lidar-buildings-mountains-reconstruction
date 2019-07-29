@@ -27,7 +27,7 @@ public class MountainController {
     public String dmrFileName;
     public String outputName;
     public static double similarAngleToleranceDegrees = 10;
-    public static double numberOfSegments = 100;
+    public static double numberOfSegments = 5;
 
     public int tempStopCount = 0;
     private int tempCount = 0;
@@ -44,12 +44,12 @@ public class MountainController {
     private List<Point3d> points2write = new ArrayList<>();
     public double[][] points2writeTemp;
 
-    private double originalMaxX = 0;
-    private double originalMinX = 0;
-    private double originalMaxY = 0;
-    private double originalMinY = 0;
-    private double originalMaxZ = 0;
-    private double originalMinZ = 0;
+//    private double originalMaxX = 0;
+//    private double originalMinX = 0;
+//    private double originalMaxY = 0;
+//    private double originalMinY = 0;
+//    private double originalMaxZ = 0;
+//    private double originalMinZ = 0;
 
     public MountainController(double[][] arr) {
 //        dmrFileName = new ArrayList<>();
@@ -82,12 +82,12 @@ public class MountainController {
             if (point[2] < minZ) minZ = point[2];
         }
 
-        this.originalMaxX = maxX;
-        this.originalMinX = minX;
-        this.originalMaxY = maxY;
-        this.originalMinY = minY;
-        this.originalMaxZ = maxZ;
-        this.originalMinZ = minZ;
+//        this.originalMaxX = maxX;
+//        this.originalMinX = minX;
+//        this.originalMaxY = maxY;
+//        this.originalMinY = minY;
+//        this.originalMaxZ = maxZ;
+//        this.originalMinZ = minZ;
 
         double centerX = (minX + maxX)/2;
         double centerY = (minY + maxY)/2;
@@ -120,11 +120,11 @@ public class MountainController {
 //                if (tempCount % 2 ==0 ) temoObjectList.add(new Object());
 
                     //-46.30999999997357, 0.010000000009313226, 0.010000000009313226
-                  Transform3D transformation = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
-                  if (transformation != null) { // transformation == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
+                  Transform3D[] transformations = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
+                  if (transformations != null) { // transformations == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
 //                      HelperClass.printLine(normal.getX(), normal.getZ(), normal.getZ());
 //                      int a = 5/0;
-                      transformationList.add(transformation);
+                      transformationList.add(transformations[0]);
                       tempCount2++;
                   }
                   tempCount++;
@@ -273,7 +273,8 @@ public class MountainController {
     }
 
     /*input: x,y,z of a vector of direction we want to translate z-axis to*/
-    public/*temp- dej na private*/ Transform3D getRotationTransformation(double x, double y, double z) {
+    /*output: array of two Transform3D objects, repesenting transformation to wanted angle and back to original angle*/
+    public/*temp- dej na private*/ Transform3D[] getRotationTransformation(double x, double y, double z) {
 
         //calculate two angles: 1. from current direcion to x-axis (rotate around z-axis)
         //                      2. from x-axis to z-axid (rotate around y-axis)
@@ -301,6 +302,7 @@ public class MountainController {
         Transform3D rotationZ = new Transform3D();
         Transform3D rotationY = new Transform3D();
         Transform3D transformation = new Transform3D();
+        Transform3D transformationBack = new Transform3D(); //reverse step for returning new points to original coo. system
 
         rotationZ.rotZ(aroundZToXAngle);
         rotationY.rotY(aroundYtoZAngle);
@@ -310,7 +312,12 @@ public class MountainController {
         transformation.mul(rotationY);
         transformation.mul(translationBack);
 
-        return transformation;
+        transformationBack.mul(translationBack);
+        transformationBack.mul(rotationY);
+        transformationBack.mul(rotationZ);
+        transformationBack.mul(translationCenter);
+
+        return new Transform3D[]{transformation, transformationBack};
     }
 
     private static boolean similarTransformationExists(double potentialAngle1, double potentialAngle2, List<double[]> angleList) {

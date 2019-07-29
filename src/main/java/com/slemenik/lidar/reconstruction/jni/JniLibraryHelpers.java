@@ -69,9 +69,11 @@ public class JniLibraryHelpers {
 //    }
 
     public static double[][] getPointArray(String inputFileName) {
-        System.out.println("method JNI.getPointArray(), filename: " + inputFileName);
+        System.out.println("Method JNI.getPointArray(), filename: " + inputFileName + ".laz");
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
-        return myInstance.getJNIPointArray(inputFileName + ".laz");
+        double[][] array = myInstance.getJNIPointArray(inputFileName + ".laz");
+        System.out.println("Read " + array.length + " points");
+        return array;
     }
 
 

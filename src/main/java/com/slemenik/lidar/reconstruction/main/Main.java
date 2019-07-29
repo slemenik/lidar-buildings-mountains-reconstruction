@@ -3,6 +3,8 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +27,7 @@ public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    public static final String INPUT_FILE_NAME = DATA_FOLDER + "original+odsek";//"triglav okrnjen.laz";
+    public static final String INPUT_FILE_NAME = DATA_FOLDER + "410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
     public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
@@ -41,8 +43,12 @@ public class Main {
     private static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 10;
 
     public static void main(String[] args) {
-        System.out.println("start main");
         long startTime = System.nanoTime();
+        System.out.println("start main");
+
+        long heapMaxSize = Runtime.getRuntime().maxMemory();
+        System.out.println("heapmaxsize "+HelperClass.formatHeapSize(heapMaxSize));
+
         tempTestFunction();
         double[][] pointListDoubleArray = mainTest(args);
 
@@ -118,34 +124,6 @@ public class Main {
         if (args.length <= 0) {
             arr2 = testMountainController(args);
         }
-
-//        TreeSet<Integer> ts = new TreeSet<>();
-//        ts.add(1);
-//        ts.add(1-2);
-//        ts.add(22);
-//        ts.add(1432);
-//        ts.add(4);
-//
-//        Iterator<Integer> it = ts.iterator();
-//        int ii = 0;
-//        while(it.hasNext()) {
-//            ii++;
-//            int i = it.next();
-//            System.out.println(i);
-////            if (i == 22) {
-////                ts.add(-20);
-////                ts.add(4);
-//////                it = ts.iterator();
-////            }
-//            if (ii > 15) {
-//                break;
-//            }
-//
-//        }
-//        System.out.print(ts.headSet(2));
-
-
-
         return arr2;
 
     }
@@ -168,20 +146,27 @@ public class Main {
 
 
     public static double[][] testMountainController(String[] args) {
+        HelperClass.memory();
         double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+        HelperClass.memory();
 //        double[][] arr = new double[][]{};
         MountainController mc = new MountainController(arr);
+        HelperClass.memory();
         arr = null; //!! essential, without it we get OutOfMemoryError: Java heap space
+        HelperClass.memory();
         mc.dmrFileName = DMR_FILE_NAME;
         mc.tempStopCount = args.length;
         MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
-        MountainController.numberOfSegments = 25; //temp - 19 is infinte loop
+//        MountainController.numberOfSegments = 25; //temp - 19 is infinte loop
 //        double[][] newPoints = mc.start();
 
         //temp///
-        Transform3D transformation = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226);
-        mc.calculateNewPoints(transformation);
+        Transform3D[] transformations = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226);
+        mc.calculateNewPoints(transformations[0]);
         double[][] newPoints = mc.points2writeTemp;
+        Arrays.asList(newPoints).stream().forEach(p -> {
+
+        });
         ////////
         OUTPUT_FILE_NAME = DATA_FOLDER + "allTheAddedPoints";
         return newPoints;
@@ -214,7 +199,7 @@ public class Main {
 
     public static List<double[]> testMountains(double[][] arr, double minX, double maxX, double minY, double maxY) {
         EvenFieldController efc = new EvenFieldController( minX, maxX, minY, maxY, CREATED_POINTS_SPACING);
-        efc.interpolation = Interpolation.BILINEAR;
+        efc.interpolation = Interpolation.BICUBIC;
         return efc.fillHoles(arr);
     }
 
