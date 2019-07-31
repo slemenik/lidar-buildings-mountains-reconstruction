@@ -34,6 +34,8 @@ public class MountainController {
     private int tempCount2 = 0;
     private int tempColor = 0;
 
+    public Transform3D transformation = new Transform3D(); //used for rotating points to desired angle
+    public Transform3D transformationBack = new Transform3D(); //used for rotating points back to original view
     private Transform3D translationCenter = new Transform3D(); // used for translating points so that center matches origin (0,0,0)
     private Transform3D translationBack = new Transform3D(); // used for translating points back to original state
     private List<double[]> pastTransformationsAngles = new ArrayList<>(); //store angles of transformations we already did,
@@ -116,15 +118,18 @@ public class MountainController {
                 //todo maybe calculate here directly instead of creating a list and then iterating it
 
                     //-46.30999999997357, 0.010000000009313226, 0.010000000009313226
-                  Transform3D transformation = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
+                  calculateRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
                   if (transformation != null) { // transformation == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
 //                      transformationList.add(transformation);
                       HelperClass.printLine(" ","searching for points in rotation: ", normal.getX(), normal.getY(), normal.getZ());
                       List<Point3d> newPoints = getNewUntransformedPoints(transformation);
                       newPoints.forEach(x->{
-                          transformation.transform(x);
+                          transformationBack.transform(x);
                           points2write.add(x);
                       });
+                      if (tempCount2 % 10 == 0) {
+                          JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ tempCount2, tempCount2/10);
+                      }
                       tempCount2++;
                   }
                   tempCount++;
@@ -188,7 +193,10 @@ public class MountainController {
         }
 
         Main.OUTPUT_FILE_NAME = Main.INPUT_FILE_NAME + "+rotate";
-        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME, tempColor++);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME, tempColor++);
+//        if (true){//temp
+//            return new ArrayList<>(rotatedPointsTreeSet);
+//        }
 //
 //        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet.stream().map(dd2->{
 //            return new Point3d(dd2.x, dd2.y, 0);
@@ -244,6 +252,7 @@ public class MountainController {
         rotatedPointsTreeSet = null;
         System.out.println("end calculateNewPoints(), we found " + addedUntransformedPointsList.size() + " new points.");
         System.out.println("-------------------------------------------------------------------------------------.");
+        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(addedUntransformedPointsList), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "untrans", tempColor++);
         return addedUntransformedPointsList;
     }
 
@@ -255,7 +264,7 @@ public class MountainController {
 
     /*input: x,y,z of a vector of direction we want to translate z-axis to*/
     /*output: array of two Transform3D objects, repesenting transformation to wanted angle and back to original angle*/
-    public/*temp- dej na private*/ Transform3D getRotationTransformation(double x, double y, double z) {
+    public/*temp- dej na private*/ void calculateRotationTransformation(double x, double y, double z) {
 
         //calculate two angles: 1. from current direcion to x-axis (rotate around z-axis)
         //                      2. from x-axis to z-axid (rotate around y-axis)
@@ -272,7 +281,7 @@ public class MountainController {
 
         //check if similiar transformation was alredy done
         if (similarTransformationExists(aroundZToXAngle, aroundYtoZAngle, pastTransformationsAngles)) {
-            return null;
+            transformation = null;
         } else {
             pastTransformationsAngles.add(new double[]{aroundZToXAngle, aroundYtoZAngle});
         }
@@ -282,7 +291,8 @@ public class MountainController {
         //transformation order: translate to origin (0,0,0), rotate by z-axis, rotate by y-axis, then translate back to start
         Transform3D rotationZ = new Transform3D();
         Transform3D rotationY = new Transform3D();
-        Transform3D transformation = new Transform3D();
+        transformation = new Transform3D();
+        transformationBack = new Transform3D();
 
         rotationZ.rotZ(aroundZToXAngle);
         rotationY.rotY(aroundYtoZAngle);
@@ -292,7 +302,12 @@ public class MountainController {
         transformation.mul(rotationY);
         transformation.mul(translationBack);
 
-        return transformation;
+        rotationY.invert();
+        rotationZ.invert();
+        transformationBack.mul(translationCenter);
+        transformationBack.mul(rotationY);
+        transformationBack.mul(rotationZ);
+        transformationBack.mul(translationBack);
     }
 
     private static boolean similarTransformationExists(double potentialAngle1, double potentialAngle2, List<double[]> angleList) {
