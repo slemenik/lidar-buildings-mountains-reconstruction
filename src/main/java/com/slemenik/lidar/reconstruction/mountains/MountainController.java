@@ -42,7 +42,7 @@ public class MountainController {
     private List<Point3d> originalPointList = new ArrayList<>();
     private List<Point3d> transformedPointList = new ArrayList<>();
     private List<Point3d> points2write = new ArrayList<>();
-    public double[][] points2writeTemp;
+    public List<Point3d> points2writeTemp;
 
 //    private double originalMaxX = 0;
 //    private double originalMinX = 0;
@@ -120,11 +120,11 @@ public class MountainController {
 //                if (tempCount % 2 ==0 ) temoObjectList.add(new Object());
 
                     //-46.30999999997357, 0.010000000009313226, 0.010000000009313226
-                  Transform3D[] transformations = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
-                  if (transformations != null) { // transformations == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
+                  Transform3D transformation = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
+                  if (transformation != null) { // transformation == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
 //                      HelperClass.printLine(normal.getX(), normal.getZ(), normal.getZ());
 //                      int a = 5/0;
-                      transformationList.add(transformations[0]);
+                      transformationList.add(transformation);
                       tempCount2++;
                   }
                   tempCount++;
@@ -201,7 +201,7 @@ public class MountainController {
         int pointNumCurrent = 0;
         int tempFileWritten = 0;
         SortedSet<Point3d> pointsCurrent;
-        List<Point3d> temp = new ArrayList<>();
+        List<Point3d> addedPointsList = new ArrayList<>();
         while (treeSetIterator.hasNext()) {
             Point3d point = treeSetIterator.next();
 //            if (point.z > currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
@@ -218,12 +218,11 @@ public class MountainController {
                 List<Point3d> missingPoints = getMissingPointsFromExisting(new ArrayList<>(pointsCurrent), transMinX, transMaxX, transMinY, transMaxY); //todo mogoče namesto new ArrayList daš kar direkt Set in nato popraviš ostalo ustrezno
                 outputfileTemp += ".missingPoints";
 //                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), INPUT_FILE_NAME, outputfileTemp, (tempColor++));
-//
 //                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2->{
 //                    return new double[]{dd2[0], dd2[1], 0};
 //                }).collect(Collectors.toList())), INPUT_FILE_NAME, outputfileTemp + ".flat", tempColor++);
 
-                temp.addAll(missingPoints);
+                addedPointsList.addAll(missingPoints);
 
                 //add new points of current segment to treeSet, treat them as other points
                 HelperClass.printLine(" ", "najdene nove točke: ", missingPoints.size());
@@ -241,7 +240,7 @@ public class MountainController {
             pointNumCurrent++;
         }
 
-        points2writeTemp = HelperClass.toResultDoubleArray(temp);
+        points2writeTemp = addedPointsList;
 
 //            System.out.println("transformation ended, get next normal");
 
@@ -260,7 +259,7 @@ public class MountainController {
 
     /*input: x,y,z of a vector of direction we want to translate z-axis to*/
     /*output: array of two Transform3D objects, repesenting transformation to wanted angle and back to original angle*/
-    public/*temp- dej na private*/ Transform3D[] getRotationTransformation(double x, double y, double z) {
+    public/*temp- dej na private*/ Transform3D getRotationTransformation(double x, double y, double z) {
 
         //calculate two angles: 1. from current direcion to x-axis (rotate around z-axis)
         //                      2. from x-axis to z-axid (rotate around y-axis)
@@ -288,7 +287,6 @@ public class MountainController {
         Transform3D rotationZ = new Transform3D();
         Transform3D rotationY = new Transform3D();
         Transform3D transformation = new Transform3D();
-        Transform3D transformationBack = new Transform3D(); //reverse step for returning new points to original coo. system
 
         rotationZ.rotZ(aroundZToXAngle);
         rotationY.rotY(aroundYtoZAngle);
@@ -298,12 +296,7 @@ public class MountainController {
         transformation.mul(rotationY);
         transformation.mul(translationBack);
 
-        transformationBack.mul(translationBack);
-        transformationBack.mul(rotationY);
-        transformationBack.mul(rotationZ);
-        transformationBack.mul(translationCenter);
-
-        return new Transform3D[]{transformation, transformationBack};
+        return transformation;
     }
 
     private static boolean similarTransformationExists(double potentialAngle1, double potentialAngle2, List<double[]> angleList) {

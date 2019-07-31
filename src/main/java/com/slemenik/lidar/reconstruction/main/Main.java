@@ -160,14 +160,14 @@ public class Main {
 //        double[][] newPoints = mc.start();
 
         //temp///
-        Transform3D[] transformations = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226);
-        mc.calculateNewPoints(transformations[0]);
-        double[][] newPoints = mc.points2writeTemp;
-        Arrays.asList(newPoints).stream().forEach(p -> {
-
-        });
+        Transform3D transformation = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226);
+        mc.calculateNewPoints(transformation);
+        double[][] newPoints =  mc.points2writeTemp.stream().map(p -> {
+            transformation.transform(p);
+            return new double[]{p.x, p.y, p.z};
+        }).toArray(double[][]::new);
         ////////
-        OUTPUT_FILE_NAME = DATA_FOLDER + "allTheAddedPoints";
+        OUTPUT_FILE_NAME = DATA_FOLDER + "allTheAddedPoints.rotatedback";
         return newPoints;
     }
 
@@ -177,7 +177,7 @@ public class Main {
         OUTPUT_FILE_NAME = DATA_FOLDER + "triglav grid diskretno.laz";
         EvenFieldController ef = new EvenFieldController(arr, CREATED_POINTS_SPACING);
         ef.interpolation = Interpolation.OWN_VALUE;
-        return ef.getPointsFromFieldArray(ef.getBooleanPointField(Arrays.asList(arr).stream().map(d -> new Point3d(d[0], d[1], d[2])).collect(Collectors.toList())), true);
+        return ef.getPointsFromFieldArray(ef.getBooleanPointField(arr), true);
     }
 
     public static List<double[]> testBoundary() {
@@ -188,7 +188,7 @@ public class Main {
     public static List<double[]> testBoundary(double[][] arr) {
 
         EvenFieldController mc = new EvenFieldController(arr, CREATED_POINTS_SPACING);
-        boolean[][] field = mc.getBooleanPointField(Arrays.asList(arr).stream().map(d -> new Point3d(d[0], d[1], d[2])).collect(Collectors.toList()));
+        boolean[][] field = mc.getBooleanPointField(arr);
         boolean[][] newField = mc.getBoundaryField(field);
 //        boolean[][] newField = field;
 

@@ -3,6 +3,7 @@ package com.slemenik.lidar.reconstruction.mountains;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 //import org.apache.commons.math3.a
 
@@ -99,6 +100,11 @@ public class EvenFieldController {
 
     }
 
+    public boolean[][] getBooleanPointField(double[][]  pointArray) {
+        return getBooleanPointField(Arrays.asList(pointArray).stream().map(d -> new Point3d(d[0], d[1], d[2])).collect(Collectors.toList()));
+    }
+
+
     /*each field is true if point exists*/
     public boolean[][] getBooleanPointField(List<Point3d>  pointList) {
 
@@ -112,8 +118,8 @@ public class EvenFieldController {
         boolean[][] field = initField(minX, maxX, minY, maxY, pointsSpace);
         this.thirdDimInfo = new double[field.length][field[0].length];
 
-        System.out.println(field.length);
-        System.out.println(field[0].length);
+//        System.out.println(field.length);
+//        System.out.println(field[0].length);
 
         int indexX = 0;
         int indexY = 0;
