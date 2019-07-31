@@ -61,7 +61,7 @@ public class HelperClass {
                 }
             }
         }
-//        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTest", 0);
+        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTest", 0);
     }
 
     // returns true if c is between a and b

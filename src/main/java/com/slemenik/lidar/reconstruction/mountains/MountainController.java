@@ -2,6 +2,7 @@ package com.slemenik.lidar.reconstruction.mountains;
 
 
 import com.slemenik.lidar.reconstruction.buildings.ShpController;
+import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.main.Main;
 import delaunay_triangulation.Delaunay_Triangulation;
@@ -20,7 +21,6 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 public class MountainController {
 
@@ -40,9 +40,6 @@ public class MountainController {
                                                                             // list item: {aroundZToXAngle, aroundYtoZAngle}
 
     private List<Point3d> originalPointList = new ArrayList<>();
-    private List<Point3d> transformedPointList = new ArrayList<>();
-    private List<Point3d> points2write = new ArrayList<>();
-    public List<Point3d> points2writeTemp;
 
 //    private double originalMaxX = 0;
 //    private double originalMinX = 0;
@@ -108,23 +105,26 @@ public class MountainController {
         dmrPointList = null; //garbage collector optimization
         //create normals
         System.out.println("Create normals");
-        List<Transform3D> transformationList = new ArrayList<>();
+//        List<Transform3D> transformationList = new ArrayList<>();
 
-        System.out.println(similarAngleToleranceDegrees);
+        System.out.println("similarAngleToleranceDegrees:" + similarAngleToleranceDegrees);
+        List<Point3d> points2write = new ArrayList<>();
 
         dt.trianglesIterator().forEachRemaining(triangleDt -> {
             if (!triangleDt.isHalfplane()) {
                 Vector3D normal = getNormalVector(triangleDt.p1(), triangleDt.p2(), triangleDt.p3());
                 //todo maybe calculate here directly instead of creating a list and then iterating it
-//                normalList.add(normal);
-//                if (tempCount % 2 ==0 ) temoObjectList.add(new Object());
 
                     //-46.30999999997357, 0.010000000009313226, 0.010000000009313226
                   Transform3D transformation = getRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
                   if (transformation != null) { // transformation == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
-//                      HelperClass.printLine(normal.getX(), normal.getZ(), normal.getZ());
-//                      int a = 5/0;
-                      transformationList.add(transformation);
+//                      transformationList.add(transformation);
+                      HelperClass.printLine(" ","searching for points in rotation: ", normal.getX(), normal.getY(), normal.getZ());
+                      List<Point3d> newPoints = getNewUntransformedPoints(transformation);
+                      newPoints.forEach(x->{
+                          transformation.transform(x);
+                          points2write.add(x);
+                      });
                       tempCount2++;
                   }
                   tempCount++;
@@ -132,16 +132,16 @@ public class MountainController {
         });
         //all, 1998099, actual transofirn , 8523, difference, 1989576, similarAngleToleranceDegrees=10
         HelperClass.printLine(", ","all", tempCount, "actual transofirn ", tempCount2, "difference", tempCount-tempCount2);
-        dt = null;
-
-        transformationList.forEach(this::calculateNewPoints);
+//        dt = null;
+//        transformationList.forEach(this::calculateNewPoints);
 
         return HelperClass.toResultDoubleArray(points2write);
 
     }
 
-    public void calculateNewPoints(Transform3D transformation){
-
+    /*return a list of new points that are positioned accorindg to transformation param*/
+    public List<Point3d> getNewUntransformedPoints(Transform3D transformation){
+        System.out.println("function getNewUntransformedPoints()");
         TreeSet<Point3d> rotatedPointsTreeSet = new TreeSet<>((p1, p2) -> {
             if (p1.x == p2.x && p1.y == p2.y && p1.z == p2.z) {
                 return 0; //if point is exactly the same, return 0 so there are no duplicates
@@ -152,11 +152,11 @@ public class MountainController {
             }
         });
 
-        points2write.clear();//temp
+//        points2write.clear();//temp
 
 //        outputName = "test ." +tempCount + ".laz";
 //        System.out.println(tempCount);
-        System.out.println("na zacetku je vseh tock" + originalPointList.size());
+//        System.out.println("na zacetku je vseh tock" + originalPointList.size());
 //                originalPointList.clear();
 //        points2writeTemp = null;
         int i = 0;
@@ -188,7 +188,7 @@ public class MountainController {
         }
 
         Main.OUTPUT_FILE_NAME = Main.INPUT_FILE_NAME + "+rotate";
-//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), INPUT_FILE_NAME, OUTPUT_FILE_NAME, tempColor++);
+        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME, tempColor++);
 //
 //        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet.stream().map(dd2->{
 //            return new Point3d(dd2.x, dd2.y, 0);
@@ -201,7 +201,8 @@ public class MountainController {
         int pointNumCurrent = 0;
         int tempFileWritten = 0;
         SortedSet<Point3d> pointsCurrent;
-        List<Point3d> addedPointsList = new ArrayList<>();
+        List<Point3d> addedUntransformedPointsList = new ArrayList<>(); //added points that are still in rotated form, before putting them in original coo. system
+
         while (treeSetIterator.hasNext()) {
             Point3d point = treeSetIterator.next();
 //            if (point.z > currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
@@ -222,33 +223,28 @@ public class MountainController {
 //                    return new double[]{dd2[0], dd2[1], 0};
 //                }).collect(Collectors.toList())), INPUT_FILE_NAME, outputfileTemp + ".flat", tempColor++);
 
-                addedPointsList.addAll(missingPoints);
+                addedUntransformedPointsList.addAll(missingPoints);
 
                 //add new points of current segment to treeSet, treat them as other points
                 HelperClass.printLine(" ", "najdene nove točke: ", missingPoints.size());
-                HelperClass.printLine(" ","prej je bilo točk: ", rotatedPointsTreeSet.size());
+//                HelperClass.printLine(" ","prej je bilo točk: ", rotatedPointsTreeSet.size());
                 rotatedPointsTreeSet.addAll(missingPoints);
-                HelperClass.printLine(" ","zdej smo jih dodali in jih je: ", rotatedPointsTreeSet.size());
+//                HelperClass.printLine(" ","zdej smo jih dodali in jih je: ", rotatedPointsTreeSet.size());
                 treeSetIterator = rotatedPointsTreeSet.iterator(); //reset iterator
                 currentMaxZDepth -= fragmentSize;
-//                currentMaxZDepth += numberOfSegments;
-                System.out.println("reset iterator, we read points: " + pointNumCurrent);
+//                currentMaxZDepth += numberOfSegments; //uncomment this, and comment upper if we go from front to back Z coordinate
+//                System.out.println("reset iterator, we read points: " + pointNumCurrent);
                 pointNumCurrent=0;
-                System.out.println("-----------------------reset iterator----------------------------------");
+//                System.out.println("-----------------------reset iterator----------------------------------");
 
             }
             pointNumCurrent++;
         }
-
-        points2writeTemp = addedPointsList;
-
-//            System.out.println("transformation ended, get next normal");
-
-
-
-
-        System.out.println("end calculateNewPoints()");
-
+        rotatedPointsTreeSet.clear();
+        rotatedPointsTreeSet = null;
+        System.out.println("end calculateNewPoints(), we found " + addedUntransformedPointsList.size() + " new points.");
+        System.out.println("-------------------------------------------------------------------------------------.");
+        return addedUntransformedPointsList;
     }
 
     private List<Point3d> getMissingPointsFromExisting(List<Point3d> existingPoints, double minX, double maxX, double minY, double maxY) {

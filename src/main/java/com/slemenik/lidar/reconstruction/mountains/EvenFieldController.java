@@ -108,7 +108,7 @@ public class EvenFieldController {
     /*each field is true if point exists*/
     public boolean[][] getBooleanPointField(List<Point3d>  pointList) {
 
-        System.out.println("method getBooleanPointField()");
+//        System.out.println("method getBooleanPointField()");
 //        double[] bounds = getBounds(pointList);
 //        double minX = bounds[0];
 //        double maxX = bounds[1];
@@ -151,16 +151,16 @@ public class EvenFieldController {
     }
 
     public List<Point3d> fillHoles(List<Point3d>  pointList) {
-        System.out.println("method fillHoles()");
+//        System.out.println("method fillHoles()");
         if (pointList.size() == 0) {
-            System.out.println("empty array param. return empty list");
+            System.out.println("fillHoles() - empty array param. return empty list");
             return new ArrayList<>();
         }
         boolean[][] fieldAllPoints = getBooleanPointField(pointList); //boolean field of projection where value==true if point exists
-        HelperClass.createFieldPointFile(fieldAllPoints);
+//        HelperClass.createFieldPointFile(fieldAllPoints);
         boolean[][] boundaryField = getBoundaryField(fieldAllPoints); //boolean field, subset of fieldAllPoints, only boundary points are true
 
-        HelperClass.createFieldPointFile(boundaryField);
+//        HelperClass.createFieldPointFile(boundaryField);
 
         List<int[]> pointsToInsert = new ArrayList<>(); //list of indices, index x and y of fieldAllPoints represent new point to insert
 
@@ -300,7 +300,7 @@ public class EvenFieldController {
 
 
     public List<Point3d> getPointsFromFieldList(List<int[]> fieldsWithPointList) {
-        System.out.println("method getPointsFromFieldList()");
+//        System.out.println("method getPointsFromFieldList()");
         List<Point3d> result = new ArrayList<>();
         int i = 0;
         int requiredSize = fieldsWithPointList.size();
@@ -337,7 +337,7 @@ public class EvenFieldController {
 
 
     public static boolean [][] getBoundaryField(boolean [][] field) { //growth distance algorithm
-        System.out.println("method getBoundaryField()");
+//        System.out.println("method getBoundaryField()");
         int K = 2;//temp
         boolean [][] newField = new boolean[field.length][field[0].length];
 
@@ -373,7 +373,7 @@ public class EvenFieldController {
         while (!stop) {
             boolean find = stop;
             int i = 1;
-            while (i <= K && !find) {
+            while (/*i <= K temp &&*/ !find) {
 
                 List<int[]> rn = RN8(pX, pY, prevX, prevY, i, field.length, field[0].length);
                 i++; //?
@@ -404,14 +404,20 @@ public class EvenFieldController {
             } else {
                 pX = nextX;
                 pY = nextY;
-                newField[pX][pY] = true;
+                try {
+                    newField[pX][pY] = true;
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    HelperClass.printLine(", ", pX, pY, stop, firstX, firstY);
+                    HelperClass.createFieldPointFile(field);
+                    newField[pX][pY] = true;
+                }
                 firstRound = false;
                 count++;
                 if (count > field.length * field[0].length) { //we basically went over whole field, still did not find solution
                     //K++;
                     //stop = true;
                     count = 0;
-                    HelperClass.createFieldPointFile(newField);
+//                    HelperClass.createFieldPointFile(newField);
                     return newField;
 
                 }
@@ -421,7 +427,7 @@ public class EvenFieldController {
                 }
             }
         }// end while
-        System.out.println("count " + count);
+//        System.out.println("count " + count);
         return newField;
     }
 

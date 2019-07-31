@@ -4,11 +4,8 @@ import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
 import com.slemenik.lidar.reconstruction.mountains.EvenFieldController;
@@ -18,7 +15,6 @@ import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
-import org.geotools.util.IntegerList;
 
 import javax.media.j3d.Transform3D;
 import javax.vecmath.Point3d;
@@ -103,6 +99,7 @@ public class Main {
 
 
 
+
         return;
 
 
@@ -157,15 +154,23 @@ public class Main {
         mc.tempStopCount = args.length;
         MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
 //        MountainController.numberOfSegments = 25; //temp - 19 is infinte loop
-//        double[][] newPoints = mc.start();
 
-        //temp///
-        Transform3D transformation = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226);
-        mc.calculateNewPoints(transformation);
-        double[][] newPoints =  mc.points2writeTemp.stream().map(p -> {
-            transformation.transform(p);
-            return new double[]{p.x, p.y, p.z};
-        }).toArray(double[][]::new);
+        double[][] newPoints;
+        boolean allNormals = false;
+        if (allNormals) {
+            newPoints = mc.start();
+        } else { //temp, for testing only
+//            Transform3D transformation = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226); //standard test example
+            Transform3D transformation = mc.getRotationTransformation(0.6900000000000546, -0.01999999999998181, 1.0);
+            List<Point3d> newUntransformedPoints = mc.getNewUntransformedPoints(transformation);
+            newPoints = new double[newUntransformedPoints.size()][3];
+
+            for(int i = 0; i<newUntransformedPoints.size(); i++) {
+                Point3d point = newUntransformedPoints.get(i);
+                transformation.transform(point);
+                newPoints[i] = new double[]{point.x, point.y, point.z};
+            }
+        }
         ////////
         OUTPUT_FILE_NAME = DATA_FOLDER + "allTheAddedPoints.rotatedback";
         return newPoints;
