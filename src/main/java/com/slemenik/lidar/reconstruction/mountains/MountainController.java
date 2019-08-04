@@ -7,6 +7,7 @@ import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.main.Main;
 import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
+import delaunay_triangulation.Triangle_dt;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.locationtech.jts.geom.Coordinate;
 
@@ -98,6 +99,30 @@ public class MountainController {
 
     public double[][] start() {
 
+
+//        List<Transform3D> transformationList = new ArrayList<>();
+
+        System.out.println("similarAngleToleranceDegrees:" + similarAngleToleranceDegrees);
+        TreeSet<Point3d> points2write = new TreeSet<Point3d>((p1, p2) -> {
+            if (p1.distance(p2) < Main.CREATED_POINTS_SPACING) {
+                return 0; //we dont add points that are very close to together
+            } else {
+                int compareX = Double.compare(p1.x, p2.x);
+                int compareY = Double.compare(p1.y, p2.y);
+                int compareZ = Double.compare(p1.z, p2.z);
+                //order by X, or if same order by Y or if same order by Z
+                return compareX != 0 ? compareX : ( compareY != 0 ? compareY : compareZ );
+            }
+        });
+
+        System.out.println("Add points from default angles");
+        //first we add points basaed on a couple of standard angles
+        getDefaultAngles().stream().forEach(normal -> {
+            points2write.addAll(getPoints2WriteFromNormalAngle(normal)); //todo zakaj dobivam skor povsod 0 točk
+        });
+        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "standard", 0);
+
+        System.out.println("Points from default angles added. Now we add points based on DMR.");
         Point_dt[] dmrPointList = getDmrFromFile(dmrFileName);
 
         System.out.println("Start triangulation");
@@ -105,34 +130,10 @@ public class MountainController {
         System.out.println("End triangulation");
 
         dmrPointList = null; //garbage collector optimization
-        //create normals
-        System.out.println("Create normals");
-//        List<Transform3D> transformationList = new ArrayList<>();
-
-        System.out.println("similarAngleToleranceDegrees:" + similarAngleToleranceDegrees);
-        List<Point3d> points2write = new ArrayList<>();
-
         dt.trianglesIterator().forEachRemaining(triangleDt -> {
             if (!triangleDt.isHalfplane()) {
                 Vector3D normal = getNormalVector(triangleDt.p1(), triangleDt.p2(), triangleDt.p3());
-                //todo maybe calculate here directly instead of creating a list and then iterating it
-
-                    //-46.30999999997357, 0.010000000009313226, 0.010000000009313226
-                  calculateRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
-                  if (transformation != null) { // transformation == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
-//                      transformationList.add(transformation);
-                      HelperClass.printLine(" ","searching for points in rotation: ", normal.getX(), normal.getY(), normal.getZ());
-                      List<Point3d> newPoints = getNewUntransformedPoints(transformation);
-                      newPoints.forEach(x->{
-                          transformationBack.transform(x);
-                          points2write.add(x);
-                      });
-                      if (tempCount2 % 10 == 0) {
-                          JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ tempCount2, tempCount2/10);
-                      }
-                      tempCount2++;
-                  }
-                  tempCount++;
+                points2write.addAll(getPoints2WriteFromNormalAngle(normal));
             }
         });
         //all, 1998099, actual transofirn , 8523, difference, 1989576, similarAngleToleranceDegrees=10
@@ -144,6 +145,47 @@ public class MountainController {
 
     }
 
+    private static List<Vector3D> getDefaultAngles () {
+        List<Vector3D> normals = new ArrayList<>();
+        for (int x = -1; x <= 1; x++ ) {
+            for (int y = -1; y <= 1; y++ ) {
+                for (int z = 0; z <= 1; z++ ) {
+                    if ( !(+x == 0 && y == 0) ) {
+                        normals.add(new Vector3D(x,y,z));
+                    }
+                }
+            }
+        }
+        normals.add(new Vector3D(1,0,0));
+        normals.add(new Vector3D(-1,0,0));
+        normals.add(new Vector3D(0,1,0));
+        normals.add(new Vector3D(0,-1,0));
+        normals.add(new Vector3D(1,0,0));
+        return normals;
+    }
+
+    private List<Point3d> getPoints2WriteFromNormalAngle(Vector3D normal) {
+        List<Point3d> points2write = new ArrayList<>();
+        //-46.30999999997357, 0.010000000009313226, 0.010000000009313226
+        calculateRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
+        if (transformation != null) { // transformation == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
+//                      transformationList.add(transformation);
+            HelperClass.printLine(" ","searching for points in rotation: ", normal.getX(), normal.getY(), normal.getZ());
+            List<Point3d> newPoints = getNewUntransformedPoints(transformation);
+            newPoints.forEach(x->{
+                transformationBack.transform(x);
+                points2write.add(x);
+            });
+            if (tempCount2 % 10 == 0) {
+                System.out.println("So far we have "+points2write.size()+" new points from " + tempCount2+" different angles");
+                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ tempCount2, tempCount2/10);
+            }
+            tempCount2++;
+        }
+        tempCount++;
+        return points2write;
+    }
+
     /*return a list of new points that are positioned accorindg to transformation param*/
     public List<Point3d> getNewUntransformedPoints(Transform3D transformation){
         System.out.println("function getNewUntransformedPoints()");
@@ -151,6 +193,9 @@ public class MountainController {
             if (p1.x == p2.x && p1.y == p2.y && p1.z == p2.z) {
                 return 0; //if point is exactly the same, return 0 so there are no duplicates
             } else {
+                if (Double.compare(p2.z, p1.z) == 0){ //temp
+                    int tempa = 35;
+                }
                 //in case of not being duplicates, order them by z
 //                return Double.compare(p1.z, p2.z); //lowset to highest
                 return Double.compare(p2.z, p1.z); //highest to lowest
@@ -217,15 +262,14 @@ public class MountainController {
             if (point.z < currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
                 pointsCurrent = rotatedPointsTreeSet.headSet(point);
 
-                String outputfileTemp = Main.OUTPUT_FILE_NAME + ".segmentTo" + currentMaxZDepth;
+//                String outputfileTemp = Main.OUTPUT_FILE_NAME + ".segmentTo" + currentMaxZDepth;
 //                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent), INPUT_FILE_NAME, outputfileTemp, (tempColor++));
 //                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent.stream().map(dd2->{
 //                    return new Point3d(dd2.x, dd2.y, 0);
 //                }).collect(Collectors.toList())), INPUT_FILE_NAME, outputfileTemp + ".flat", tempColor++);
 
-
-                List<Point3d> missingPoints = getMissingPointsFromExisting(new ArrayList<>(pointsCurrent), transMinX, transMaxX, transMinY, transMaxY); //todo mogoče namesto new ArrayList daš kar direkt Set in nato popraviš ostalo ustrezno
-                outputfileTemp += ".missingPoints";
+                List<Point3d> missingPoints = getMissingPointsFromExisting(pointsCurrent, transMinX, transMaxX, transMinY, transMaxY); //todo mogoče namesto new ArrayList daš kar direkt Set in nato popraviš ostalo ustrezno
+//                outputfileTemp += ".missingPoints";
 //                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), INPUT_FILE_NAME, outputfileTemp, (tempColor++));
 //                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2->{
 //                    return new double[]{dd2[0], dd2[1], 0};
@@ -252,11 +296,11 @@ public class MountainController {
         rotatedPointsTreeSet = null;
         System.out.println("end calculateNewPoints(), we found " + addedUntransformedPointsList.size() + " new points.");
         System.out.println("-------------------------------------------------------------------------------------.");
-        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(addedUntransformedPointsList), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "untrans", tempColor++);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(addedUntransformedPointsList), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "untrans", tempColor++);
         return addedUntransformedPointsList;
     }
 
-    private List<Point3d> getMissingPointsFromExisting(List<Point3d> existingPoints, double minX, double maxX, double minY, double maxY) {
+    private List<Point3d> getMissingPointsFromExisting(SortedSet<Point3d> existingPoints, double minX, double maxX, double minY, double maxY) {
         EvenFieldController efc = new EvenFieldController( minX, maxX, minY, maxY, Main.CREATED_POINTS_SPACING);
         efc.interpolation = InterpolationController.Interpolation.BICUBIC;
         return efc.fillHoles(existingPoints);

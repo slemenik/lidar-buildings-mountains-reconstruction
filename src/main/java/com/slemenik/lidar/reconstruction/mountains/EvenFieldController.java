@@ -100,13 +100,13 @@ public class EvenFieldController {
 
     }
 
-    public boolean[][] getBooleanPointField(double[][]  pointArray) {
-        return getBooleanPointField(Arrays.asList(pointArray).stream().map(d -> new Point3d(d[0], d[1], d[2])).collect(Collectors.toList()));
+    public boolean[][] getBooleanPointField(double[][] pointArray) {
+        return getBooleanPointField(Arrays.asList(pointArray).stream().map(d -> new Point3d(d[0], d[1], d[2])).collect(Collectors.toSet()));
     }
 
 
     /*each field is true if point exists*/
-    public boolean[][] getBooleanPointField(List<Point3d>  pointList) {
+    public boolean[][] getBooleanPointField(Set<Point3d> pointList) {
 
 //        System.out.println("method getBooleanPointField()");
 //        double[] bounds = getBounds(pointList);
@@ -150,7 +150,7 @@ public class EvenFieldController {
 //        return getPointsFromFieldArray(field, minX, minY, pointsSpace);
     }
 
-    public List<Point3d> fillHoles(List<Point3d>  pointList) {
+    public List<Point3d> fillHoles(SortedSet<Point3d>  pointList) {
 //        System.out.println("method fillHoles()");
         if (pointList.size() == 0) {
             System.out.println("fillHoles() - empty array param. return empty list");
