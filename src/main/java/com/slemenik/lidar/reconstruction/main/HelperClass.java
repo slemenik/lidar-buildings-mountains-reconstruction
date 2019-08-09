@@ -52,6 +52,10 @@ public class HelperClass {
 
     }
 
+    public static double index2PointTemp(int x, double min, double pointSpace) {//temp spremeni v private
+        return ((double) x) * pointSpace + min;
+    }
+
     public static void createFieldPointFile(boolean[][] field) {
         List<double[]> points = new ArrayList<>();
         for (int i = 0; i< field.length;i++) {
@@ -61,7 +65,21 @@ public class HelperClass {
                 }
             }
         }
-        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTest", 0);
+        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTest");
+    }
+
+    public static void createFieldPointFile(boolean[][] field, double minX, double minY, double pointsSpace) {
+        List<double[]> points = new ArrayList<>();
+        for (int i = 0; i< field.length;i++) {
+            for (int j = 0; j< field[i].length;j++) {
+                if (field[i][j]) {
+                    double newX = index2PointTemp(i, minX, pointsSpace);
+                    double newY = index2PointTemp(j, minY, pointsSpace);
+                    points.add(new double[]{newX,newY,0});
+                }
+            }
+        }
+        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTest");
     }
 
     // returns true if c is between a and b
