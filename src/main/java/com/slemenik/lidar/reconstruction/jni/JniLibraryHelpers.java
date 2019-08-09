@@ -14,13 +14,14 @@ public class JniLibraryHelpers {
 //        System.loadLibrary("Project2");
     }
 
-    private static int colorTemp = 0;
+    public static int colorTemp = 0;
 
     private native void writeJNIPoint(double x, double y, double z);
     private native int writeJNIPointList(double[][] pointsArray, String inputFileName, String outputFileName, int classification);
     private native double[] getJNIMinMaxHeight(double x, double y, double radius, String inputFileName );
     //private native int createTempLaz(double minX, double miny, double maxX, double maxY, String tempFileName, String inputFileName );
     private native double[][] getJNIPointArray(String inputFileName);
+    private native double[] getJNIHeaderInfo(String inputFileName);
 
     public void printDouble(double d) {
         System.out.println(d);
@@ -41,6 +42,10 @@ public class JniLibraryHelpers {
         return writePointList(list, inputFileName, outputFileName, 7);
     }
 
+    public static Integer writePointList(double[][] list, String inputFileName, String outputFileName) {
+        return writePointList(list, inputFileName,  outputFileName + colorTemp, colorTemp++);
+    }
+
     public static Integer writePointList(double[][] list, String inputFileName, String outputFileName, int intColor) {
         if (list.length == 0) {
             System.out.println("empty list, nothing to write.");
@@ -53,7 +58,7 @@ public class JniLibraryHelpers {
 //        for (int i = 0; i<list.length;i++) {
 //            System.out.println(new Coordinate(list[i][0],  list[i][1], list[i][2]));
 //        }
-        return myInstance.writeJNIPointList(list,inputFileName + ".laz", outputFileName + ".laz", intColor);
+        return myInstance.writeJNIPointList(list,inputFileName + ".laz", outputFileName +".laz", intColor);
     }
 
     public static double[] getMinMaxHeight(double x, double y, double threshold, String inputFileName) {
@@ -73,6 +78,13 @@ public class JniLibraryHelpers {
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         double[][] array = myInstance.getJNIPointArray(inputFileName + ".laz");
         System.out.println("Read " + array.length + " points");
+        return array;
+    }
+
+    public static double[] getHeaderInfo(String inputFileName) {
+        System.out.println("Method JNI.getHeaderInfo(), filename: " + inputFileName + ".laz");
+        JniLibraryHelpers myInstance = new JniLibraryHelpers();
+        double[] array = myInstance.getJNIHeaderInfo(inputFileName + ".laz");
         return array;
     }
 
