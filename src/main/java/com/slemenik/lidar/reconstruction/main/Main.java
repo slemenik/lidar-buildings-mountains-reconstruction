@@ -3,6 +3,7 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -27,6 +28,8 @@ public class Main {
     public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
+    private static final int MAX_POINT_NUMBER_IN_MEMORY_MILLION = 10; // največje število točk originalne datoteke, ki ga še preberemo v pomnilnik
+                                                                      // če je točk več, se razdeli v več ločenih branj
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
     public static final double CREATED_POINTS_SPACING = 0.6;//2.0;//0.2;
@@ -96,9 +99,6 @@ public class Main {
 //        System.out.println(EvenFieldController.index2Point(512, min, 0.6));
 //        System.out.println(EvenFieldController.index2Point(513, min, 0.6));
 
-
-
-
         return;
 
 
@@ -133,34 +133,33 @@ public class Main {
     }
 
     public static void writeOBJ() {
-        MountainController mc = new MountainController(new double[][]{});
-        Point_dt[] list = mc.getDmrFromFile(DMR_FILE_NAME);
+        Point_dt[] list = MountainController.getDmrFromFile(DMR_FILE_NAME);
         Delaunay_Triangulation dt = new Delaunay_Triangulation(list);
-        try { dt.write_smf("smf.obj"); }catch (Exception e) {}
+        try { dt.write_smf("smf.obj"); } catch (Exception e) {}
     }
 
 
     public static double[][] testMountainController(String[] args) {
         HelperClass.memory();
-        double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+        double[] lasHeaderParams = JniLibraryHelpers.getHeaderInfo((INPUT_FILE_NAME));
+        MountainController mc = new MountainController(lasHeaderParams);
+        //todo - if ppreveč točk, preberi jih manj
+        mc.originalPointArray = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
         HelperClass.memory();
-//        double[][] arr = new double[][]{};
-        MountainController mc = new MountainController(arr);
-        HelperClass.memory();
-        arr = null; //!! essential, without it we get OutOfMemoryError: Java heap space
-        HelperClass.memory();
+
         mc.dmrFileName = DMR_FILE_NAME;
         mc.tempStopCount = args.length;
         MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
 //        MountainController.numberOfSegments = 25; //temp - 19 is infinte loop
 
         double[][] newPoints;
-        boolean allNormals = true;
+        boolean allNormals = false;
         if (allNormals) {
             newPoints = mc.start();
         } else { //temp, for testing only
 //            Transform3D transformation = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226); //standard test example
-            mc.calculateRotationTransformation(0.6900000000000546, -0.01999999999998181, 1.0);
+//            mc.calculateRotationTransformation(0.6900000000000546, -0.01999999999998181, 1.0);
+            mc.calculateRotationTransformation(-1, -1, 0.0);
             List<Point3d> newUntransformedPoints = mc.getNewUntransformedPoints(mc.transformation);
             newPoints = new double[newUntransformedPoints.size()][3];
 

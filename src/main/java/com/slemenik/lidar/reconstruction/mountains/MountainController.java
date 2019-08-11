@@ -7,7 +7,6 @@ import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.main.Main;
 import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
-import delaunay_triangulation.Triangle_dt;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.locationtech.jts.geom.Coordinate;
 
@@ -30,6 +29,7 @@ public class MountainController {
     public String outputName;
     public static double similarAngleToleranceDegrees = 10;
     public static double numberOfSegments = 15;
+    public double[][] originalPointArray;
 
     public int tempStopCount = 0;
     private int tempCount = 0;
@@ -43,7 +43,6 @@ public class MountainController {
     private List<double[]> pastTransformationsAngles = new ArrayList<>(); //store angles of transformations we already did,
                                                                             // list item: {aroundZToXAngle, aroundYtoZAngle}
 
-    private List<Point3d> originalPointList = new ArrayList<>();
 
 //    private double originalMaxX = 0;
 //    private double originalMinX = 0;
@@ -52,43 +51,19 @@ public class MountainController {
 //    private double originalMaxZ = 0;
 //    private double originalMinZ = 0;
 
-    public MountainController(double[][] arr) {
+    public MountainController(double[] lasHeaderParams) {
 //        dmrFileName = new ArrayList<>();
-        setParams(arr);
+        setParams(lasHeaderParams);
     }
 
     /*sets class variables: all max and min values per coordiante, pointList, translation*/
-    private void setParams(double[][] arr){
-        double minX = Double.MAX_VALUE;
-        double maxX = 0;
-        double minY = Double.MAX_VALUE;
-        double maxY = 0;
-        double minZ = Double.MAX_VALUE;
-        double maxZ = 0;
-
-        for (double[] point : arr) {
-
-            //fill point3d list
-            Point3d p = new Point3d(point[0], point[1], point[2]);
-            originalPointList.add(p);
-
-            //set max and min
-            if (point[0] > maxX) maxX = point[0];
-            if (point[0] < minX) minX = point[0];
-
-            if (point[1] > maxY) maxY = point[1];
-            if (point[1] < minY) minY = point[1];
-
-            if (point[2] > maxZ) maxZ = point[2];
-            if (point[2] < minZ) minZ = point[2];
-        }
-
-//        this.originalMaxX = maxX;
-//        this.originalMinX = minX;
-//        this.originalMaxY = maxY;
-//        this.originalMinY = minY;
-//        this.originalMaxZ = maxZ;
-//        this.originalMinZ = minZ;
+    private void setParams(double[] lasHeaderParams){
+        double minX = lasHeaderParams[0];
+        double maxX = lasHeaderParams[1];
+        double minY = lasHeaderParams[2];
+        double maxY = lasHeaderParams[3];
+        double minZ = lasHeaderParams[4];
+        double maxZ = lasHeaderParams[5];
 
         double centerX = (minX + maxX)/2;
         double centerY = (minY + maxY)/2;
@@ -219,7 +194,6 @@ public class MountainController {
 //        System.out.println("na zacetku je vseh tock" + originalPointList.size());
 //                originalPointList.clear();
 //        points2writeTemp = null;
-        int i = 0;
 //        points2writeTemp = new double[originalPointList.size()][3];
         double transMinX = Double.MAX_VALUE;
         double transMaxX = 0;
@@ -227,13 +201,11 @@ public class MountainController {
         double transMaxY = 0;
         double transMinZ = Double.MAX_VALUE;
         double transMaxZ = 0;
-        for(Point3d originalPoint : originalPointList) {
+        Point3d originalPoint;
+        for (double[] point : originalPointArray) {
+            originalPoint = new Point3d(point[0], point[1], point[2]);
             Point3d newPoint = new Point3d();
             transformation.transform(originalPoint, newPoint);
-//                         tempPoint2 = (new double[]{originalPoint.x, originalPoint.y, originalPoint.z});
-//                        points2write.add(tempPoint2);
-//                        points2write.add(new double[]{newPoint.x, newPoint.y, newPoint.z});
-//                points2writeTemp[i] = new double[]{newPoint.x, newPoint.y, newPoint.z};
             rotatedPointsTreeSet.add(newPoint);
 
             if (transMinX > newPoint.x) transMinX = newPoint.x;
@@ -244,7 +216,6 @@ public class MountainController {
 
             if (transMinZ > newPoint.z) transMinZ = newPoint.z;
             if (transMaxZ < newPoint.z) transMaxZ = newPoint.z;
-            i++;
         }
 
         Main.OUTPUT_FILE_NAME = Main.INPUT_FILE_NAME + "+rotate";
@@ -378,7 +349,7 @@ public class MountainController {
 
     /*returns array of object Point_dt with coordinates from DMR file*/
     /*used for triangulation*/
-    public Point_dt[] getDmrFromFile(String ascFileName) {
+    public static Point_dt[] getDmrFromFile(String ascFileName) {
         System.out.println("method getDmrFromFile()");
         List<Point_dt> list = new ArrayList<>();
 //        int i = 0;
