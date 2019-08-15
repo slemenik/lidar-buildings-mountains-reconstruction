@@ -14,7 +14,7 @@ public class JniLibraryHelpers {
 //        System.loadLibrary("Project2");
     }
 
-    public static int colorTemp = 0;
+    public static int colorTemp = 3;
 
     private native void writeJNIPoint(double x, double y, double z);
     private native int writeJNIPointList(double[][] pointsArray, String inputFileName, String outputFileName, int classification);
@@ -52,7 +52,7 @@ public class JniLibraryHelpers {
             return -1;
         }
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
-        System.out.println("klic funkcije writeJNIPointList()");
+        System.out.println("klic funkcije writeJNIPointList(), filename" + outputFileName +".laz");
 
 //        System.out.println(" seznam tock je: ");
 //        for (int i = 0; i<list.length;i++) {

@@ -17,6 +17,8 @@ public class HelperClass {
             return (double[][]) list.toArray(new double[][]{});
         } else if (list.get(0) instanceof Point3d) {
            return ((List<Point3d>) list).stream().map(point3d -> new double[]{point3d.x, point3d.y, point3d.z}).toArray(double[][]::new);
+        } else if (list.get(0) instanceof int[]) {
+            return ((List<int[]>) list).stream().map(index -> new double[]{index[0], index[1], 0}).toArray(double[][]::new);
         } else {
             return null;
         }
@@ -56,6 +58,14 @@ public class HelperClass {
         return ((double) x) * pointSpace + min;
     }
 
+    public static void createFieldPointFile(List<int[]> indexList) {
+        List<double[]> points = new ArrayList<>();
+        indexList.forEach(intArray -> {
+            points.add(new double[]{intArray[0],intArray[1],0});
+        });
+        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTestTransformedCoo");
+    }
+
     public static void createFieldPointFile(boolean[][] field) {
         List<double[]> points = new ArrayList<>();
         for (int i = 0; i< field.length;i++) {
@@ -65,7 +75,17 @@ public class HelperClass {
                 }
             }
         }
-        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTest");
+        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTestZeroCoo");
+    }
+
+    public static void createFieldPointFile(List<int[]> indexList, double minX, double minY, double pointsSpace) {
+        List<double[]> points = new ArrayList<>();
+        indexList.stream().forEach(intArray -> {
+            double newX = index2PointTemp(intArray[0], minX, pointsSpace);
+            double newY = index2PointTemp(intArray[1], minY, pointsSpace);
+            points.add(new double[]{newX,newY,0});
+        });
+        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTestTransformedCoo");
     }
 
     public static void createFieldPointFile(boolean[][] field, double minX, double minY, double pointsSpace) {
@@ -79,7 +99,7 @@ public class HelperClass {
                 }
             }
         }
-        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTest");
+        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTestTransformedCoo");
     }
 
     // returns true if c is between a and b

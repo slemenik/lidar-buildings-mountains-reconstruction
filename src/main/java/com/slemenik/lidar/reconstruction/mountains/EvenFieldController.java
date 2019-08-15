@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import static com.slemenik.lidar.reconstruction.buildings.ShpController.getBoundsFromFilename;
 
+import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 import org.apache.commons.lang3.ArrayUtils;
@@ -157,130 +158,45 @@ public class EvenFieldController {
             return new ArrayList<>();
         }
         boolean[][] fieldAllPoints = getBooleanPointField(pointList); //boolean field of projection where value==true if point exists
-//        HelperClass.createFieldPointFile(fieldAllPoints);
         boolean[][] boundaryField = getBoundaryField(fieldAllPoints); //boolean field, subset of fieldAllPoints, only boundary points are true
 
-//        HelperClass.createFieldPointFile(boundaryField);
+//        if (pointList.size() == 2271442) { //temp
+//            HelperClass.createFieldPointFile(boundaryField, minX, minY, pointsSpace);
+            HelperClass.createFieldPointFile(boundaryField);
+//            HelperClass.createFieldPointFile(fieldAllPoints, minX, minY, pointsSpace);
+            HelperClass.createFieldPointFile(fieldAllPoints);
+//            System.exit(-1111);
+//        }
+
 
         List<int[]> pointsToInsert = new ArrayList<>(); //list of indices, index x and y of fieldAllPoints represent new point to insert
 
        for (int i = 0; i< fieldAllPoints.length; i++) {
+           boolean insideBorder = false;
+           List<int[]> pointsToInsertPerRow = new ArrayList<>();
            for (int j = 0; j < fieldAllPoints[i].length; j++) {
-               if (fieldAllPoints[i][j]) { //point already exists, ignore it
-                   continue;
+               if (boundaryField[i][j]) { // point is boundary
+                   if (pointsToInsertPerRow.size() > 0 && insideBorder) { //if we had written some points and we were previously inside border
+                       pointsToInsert.addAll(pointsToInsertPerRow); //we write all indexes representing new (not yet added) points
+                   }
+                   insideBorder = false; //we are not inside boundary anymore
+                   pointsToInsertPerRow.clear(); //delete points we created from last border point to this one
+               } else if (!fieldAllPoints[i][j]) { //point is not boundary and does not yet exists at this index
+                       pointsToInsertPerRow.add(new int[]{i,j}); //we add it to temporary list, we don't know yet if points are inside border
                } else {
-                   //we check if it is inside boundary - it has a boundary point somewhere bellow, above, left AND right
-
-                   //check up
-                   int tempIndex = j;
-                   boolean boundaryFound = false;
-                   while (tempIndex < fieldAllPoints[0].length) {
-                       if (boundaryField[i][tempIndex]) { //we have reached the boundary point
-                           boundaryFound = true;
-                           break;
-                       }
-                       tempIndex++;
-                   }
-                   if (!boundaryFound) {// point it outside boundary, we ignore it
-                       continue;
-                   }
-
-                   //check down
-                   tempIndex = j;
-                   boundaryFound = false;
-                   while (tempIndex >= 0 ) {
-                       if (boundaryField[i][tempIndex]) {
-                           boundaryFound = true; //we have reached the boundary point
-                           break;
-                       }
-                       tempIndex--;
-                   }
-                   if (!boundaryFound) {// point it outside boundary, we ignore it
-                       continue;
-                   }
-
-
-                   //check right
-                   tempIndex = i;
-                   boundaryFound = false;
-                   while (tempIndex < fieldAllPoints.length ) {
-                       if (boundaryField[tempIndex][j]) {
-                           boundaryFound = true; //we have reached the boundary point
-                           break;
-                       }
-                       tempIndex++;
-                   }
-                   if (!boundaryFound) {// point it outside boundary, we ignore it
-                       continue;
-                   }
-
-                   //check left
-                   tempIndex = i;
-                   boundaryFound = false;
-                   while (tempIndex >= 0 ) {
-                       if (boundaryField[tempIndex][j]) {
-                           boundaryFound = true; //we have reached the boundary point
-                           break;
-                       }
-                       tempIndex--;
-                   }
-                   if (!boundaryFound) {// point it outside boundary, we ignore it
-                       continue;
-                   }
-
-                   //it is inside boundary, we add it
-                   pointsToInsert.add(new int[]{i, j});
+                   insideBorder = true; //point is not boundary, and already exists at current index - we are definitely inside border,
+                                        // otherwise there couldn't be a point already here. Every point added from last border point to next
+                                        // will be added to main list, when we hit the next border point
                }
            } //end for j
        } // end for i
-
+//        HelperClass.createFieldPointFile(pointsToInsert, minX, minY, pointsSpace);
+        HelperClass.createFieldPointFile(pointsToInsert);
         return getPointsFromFieldList(pointsToInsert);
 //        return getPointsFromFieldArray(fieldAllPoints, false);
     }
 
-
-//        PrintStream printStream;
-
-//        PrintStream ps = new PrintStream(System.out);
-//        q.print(ps);
-//        ps.flush();
-
-//        System.out.println(q.size());
-//        List<QuadTree<Integer>.CoordHolder> a = q.findAll( 137782.030 , 2761.990, 137783.340, 2762.980);
-//        System.out.println(a.size());
-//        for (QuadTree<Integer>.CoordHolder item : a) {
-//            System.out.println(item.x);
-//            System.out.println(item.y);
-//            System.out.println(item.o);
-//            System.out.println(item.depth());
-//            System.out.println(item.quad);
-//            System.out.println("_____________________-");
-//
-//        }
-
-
-
-
-
-//        if (LP != null) q.LIST_PROVIDER = LP;
-//        MAX = 1;
-//        DYNAMIC = 0;
-//        BUCKET_EXP = 0;
-//        q.LEAF_MAX_OBJECTS = MAX;
-//        if (DYNAMIC > 0)
-//            q.DYNAMIC_MAX_OBJECTS = true;
-//        q.MAX_OBJ_TARGET_EXPONENT = BUCKET_EXP;
-//
-//        for(int i = 0; i < nItems; i++)
-//        {
-//            q.place(Math.round(Math.random()*1000) + (windowShift * i / (double)nItems),
-//                    Math.round(Math.random()*1000), i);
-//        }
-//        return q;
-
-//
-
-    //ussage: testBoundary() , testMountainGrid3d
+    //usage: testBoundary() , testMountainGrid3d
     public List<double[]> getPointsFromFieldArray(boolean[][] field, boolean writeWhenBoolean) {
         List<double[]> result = new ArrayList<>();
         for (int x = 0; x<field.length; x++) {
@@ -430,6 +346,8 @@ public class EvenFieldController {
 //        System.out.println("count " + count);
         return newField;
     }
+
+
 
     private static boolean is4NeighborhoodEmpty(boolean [][] field, int x, int y, boolean outsideBoundsIsEmpty) {
         return outsideBoundsIsEmpty ? (

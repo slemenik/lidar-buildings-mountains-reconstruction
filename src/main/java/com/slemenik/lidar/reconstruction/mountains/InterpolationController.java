@@ -320,6 +320,9 @@ public class InterpolationController {
                 break;
             }
         }
+        if (indexXList.size() < 2){
+            System.out.println("getBiCubicThirdDim, we didn't get two neighbours");
+        }
 
         x = indexX+1;
         added = 0;
@@ -334,10 +337,9 @@ public class InterpolationController {
                 indexXList.add(thirdDimInfo.length);
                 break;
             }
-
         }
 
-        //indeY
+        //indexY
         int y = indexY-1;
         added = 0;
         List<Integer> indexYList = new ArrayList<>();
@@ -353,6 +355,10 @@ public class InterpolationController {
                 break;
             }
         }
+        if (indexYList.size() < 2){
+            System.out.println("getBiCubicThirdDim, we didn't get two neighbours (Y index)");
+        }
+
 
         y = indexY+1;
         added = 0;
@@ -368,7 +374,10 @@ public class InterpolationController {
                 break;
             }
         }
-
+        if (indexXList.size() < 4 || indexYList.size() < 4){
+            System.out.println("method getBiCubicThirdDim(), we don't have 4 neighbours");
+            return -1;
+        }
         Collections.sort(indexXList);
         Collections.sort(indexYList);
 
@@ -454,7 +463,13 @@ public class InterpolationController {
         double y0 = values[0];
         double y1 = values[1];
         double y2 = values[2];
-        double y3 = values[3];
+        double y3 = 0;
+        try { //temp
+             y3 = values[3];
+        } catch (ArrayIndexOutOfBoundsException e){
+            System.out.println(e);
+            values[3]++;
+        }
         double a0,a1,a2,a3,mu2;
 
         //http://paulbourke.net/miscellaneous/interpolation/
@@ -478,7 +493,7 @@ public class InterpolationController {
         }
 
         double a = a0*mu*mu2+a1*mu2+a2*mu+a3;
-        if (a > 411000) {
+        if (a > 411000) { //temp
             double c = a;
         }
         return(a0*mu*mu2+a1*mu2+a2*mu+a3);
