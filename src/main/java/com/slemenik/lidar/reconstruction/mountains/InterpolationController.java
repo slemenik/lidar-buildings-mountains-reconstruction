@@ -221,7 +221,7 @@ public class InterpolationController {
 
         }
         if (indexXList.size() < 3) {
-            System.out.println("impossible indexXList.size() < 3");
+//            System.out.println("impossible indexXList.size() < 3");
             return -1;
         } else if (indexXList.size() == 4) {
             if (indexX - indexXList.get(1) < indexXList.get(3) - indexX) {//todo if list is sorted, set to .get(0) insted of .get(1)
@@ -240,7 +240,7 @@ public class InterpolationController {
             }
         }
 
-        //indeY
+        //indexY
         int y = indexY-1;
         added = 0;
         List<Integer> indexYList = new ArrayList<>();
@@ -321,7 +321,8 @@ public class InterpolationController {
             }
         }
         if (indexXList.size() < 2){
-            System.out.println("getBiCubicThirdDim, we didn't get two neighbours");
+//            System.out.println("getBiCubicThirdDim, we didn't get two neighbours");
+            return -2;
         }
 
         x = indexX+1;
@@ -337,6 +338,10 @@ public class InterpolationController {
                 indexXList.add(thirdDimInfo.length);
                 break;
             }
+        }
+        if (indexXList.size() < 4){
+//            System.out.println("getBiCubicThirdDim, we didn't get 4 neighbours");
+            return -2;
         }
 
         //indexY
@@ -356,7 +361,8 @@ public class InterpolationController {
             }
         }
         if (indexYList.size() < 2){
-            System.out.println("getBiCubicThirdDim, we didn't get two neighbours (Y index)");
+//            System.out.println("getBiCubicThirdDim, we didn't get two neighbours (Y index)");
+            return -2;
         }
 
 
@@ -374,9 +380,9 @@ public class InterpolationController {
                 break;
             }
         }
-        if (indexXList.size() < 4 || indexYList.size() < 4){
-            System.out.println("method getBiCubicThirdDim(), we don't have 4 neighbours");
-            return -1;
+        if (indexXList.size() < 4 || indexYList.size() < 4){ //one last check
+//            System.out.println("method getBiCubicThirdDim(), we don't have 4 neighbours ,meaning we are outside border, this point should not exists");
+            return -2;
         }
         Collections.sort(indexXList);
         Collections.sort(indexYList);

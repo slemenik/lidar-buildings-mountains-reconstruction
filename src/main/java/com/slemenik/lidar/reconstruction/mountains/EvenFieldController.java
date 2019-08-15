@@ -14,6 +14,7 @@ import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 import org.apache.commons.lang3.ArrayUtils;
 
+import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
 
 public class EvenFieldController {
@@ -205,7 +206,9 @@ public class EvenFieldController {
                 double newY = index2Point(y, minY, pointsSpace);
                 if (field[x][y] == writeWhenBoolean) {
                     double newTemp = InterpolationController.getThirdDim(thirdDimInfo, x, y, interpolation);
-                    result.add(new double[]{ newTemp, newX, newY});//temp, because x = 0, y = x, z = y
+                    if (newTemp != -2) {
+                        result.add(new double[]{ newTemp, newX, newY});//temp, because x = 0, y = x, z = y
+                    }
                 }
 
             }
@@ -237,8 +240,10 @@ public class EvenFieldController {
             double newTemp = InterpolationController.getThirdDim(thirdDimInfo, indexX, indexY, interpolation);
 //todo tukaj se pri interpolaciji večkrat kličejo ene in iste točke, popravi, npr ko je indexX skos isti, se potem na podlagi tega iste interpolacije računajo
             if (newTemp == -1) { //no average found, we will calculate later
-                System.out.println("no average found");
+//                System.out.println("no average found");
                 fieldsWithPointList.add(fieldIndex);
+            }else if(newTemp == -2) {
+                requiredSize--;
             } else {
                 if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE}, interpolation )) { //todo explore why
                     thirdDimInfo[indexX][indexY] = newTemp; // sprotno popravljanje oz dopolnjevanje tretje dimenzije
@@ -251,36 +256,29 @@ public class EvenFieldController {
         return result;
     }
 
-
     public static boolean [][] getBoundaryField(boolean [][] field) { //growth distance algorithm
 //        System.out.println("method getBoundaryField()");
         int K = 2;//temp
         boolean [][] newField = new boolean[field.length][field[0].length];
 
-        int firstX = -1;
-        int firstY = -1;
+        Point2d pFirst = new Point2d(-1,-1);
 
         //get first point
         for (int i = 0; i<field.length; i++) {
             for (int j = 0; j < field[0].length; j++) {
                 if (field[i][j]) {
-                    firstX = i;
-                    firstY = j;
+                    pFirst.x = i;
+                    pFirst.y = j;
                     break;
                 }
             }
-            if (firstX > -1 && firstY > -1) {
+            if (pFirst.x > -1 && pFirst.y > -1) {
                 break;
             }
         }
-
-        int pX = firstX;
-        int pY = firstY;
-
-        int nextX = -1;
-        int nextY = -1;
-        int prevX = -1;
-        int prevY = -1;
+        Point2d p = pFirst;
+        Point2d pNext = new Point2d(-1,-1);
+        Point2d pPrev = new Point2d(-1,-1);;
 
         boolean firstRound = true;
         int count = 0;
@@ -291,21 +289,16 @@ public class EvenFieldController {
             int i = 1;
             while (/*i <= K temp &&*/ !find) {
 
-                List<int[]> rn = RN8(pX, pY, prevX, prevY, i, field.length, field[0].length);
+                List<int[]> rn = RN8(p, pPrev, i, field.length, field[0].length);
                 i++; //?
-                for (int[] q : rn) {
-                    int qX = q[0];
-                    int qY = q[1];
-                    if (!field[qX][qY]) {
+                for (int[] qArray : rn) {
+                    Point2d q = new Point2d(qArray[0], qArray[1]);
+                    if (!field[(int)q.x][(int)q.y]) {
                         continue; //at current position there is no point, so this is not q
                     }
-                    if (is8NeighborhoodEmpty(field, qX, qY, true)) {
-                         prevX = pX;
-                         prevY = pY;
-
-                         nextX = qX;
-                         nextY = qY;
-
+                    if (is8NeighborhoodEmpty(field, (int)q.x, (int)q.y, true)) {
+                         pPrev = p;
+                         pNext = q;
                          find = true;
                          break; //break for RN
                     } else {
@@ -315,17 +308,16 @@ public class EvenFieldController {
                     }//end if
                 } //end for
             } //end while
-            if (pX == firstX && pY == firstY && !firstRound) {
+            if (p.equals(pFirst) && !firstRound) {
                 stop = true;
             } else {
-                pX = nextX;
-                pY = nextY;
+                p = pNext;
                 try {
-                    newField[pX][pY] = true;
+                    newField[(int)p.x][(int)p.y] = true;
                 } catch (ArrayIndexOutOfBoundsException e) {
-                    HelperClass.printLine(", ", pX, pY, stop, firstX, firstY);
+                    HelperClass.printLine(", ", p, stop, pFirst);
                     HelperClass.createFieldPointFile(field);
-                    newField[pX][pY] = true;
+                    newField[(int)p.x][(int)p.y] = true;
                 }
                 firstRound = false;
                 count++;
@@ -394,6 +386,10 @@ public class EvenFieldController {
         DOWN,
         LEFT,
         UP
+    }
+
+    private static List<int[]> RN8(Point2d p, Point2d pPrev, int i, int lengthX, int lengthY) {
+        return RN8((int)p.x, (int)p.y, (int)pPrev.x, (int)pPrev.y, i, lengthX, lengthY);
     }
 
     /*return list of indices {[x,y], [x2,y2],... } that surround point px,py */
