@@ -14,7 +14,7 @@ public class JniLibraryHelpers {
 //        System.loadLibrary("Project2");
     }
 
-    public static int colorTemp = 3;
+    public static int colorTemp = 0;
 
     private native void writeJNIPoint(double x, double y, double z);
     private native int writeJNIPointList(double[][] pointsArray, String inputFileName, String outputFileName, int classification);
@@ -22,6 +22,8 @@ public class JniLibraryHelpers {
     //private native int createTempLaz(double minX, double miny, double maxX, double maxY, String tempFileName, String inputFileName );
     private native double[][] getJNIPointArray(String inputFileName);
     private native double[] getJNIHeaderInfo(String inputFileName);
+    private native double[][] getJNIPointArrayRange(String inputFileName, double minX, double maxX);
+
 
     public void printDouble(double d) {
         System.out.println(d);
@@ -85,6 +87,14 @@ public class JniLibraryHelpers {
         System.out.println("Method JNI.getHeaderInfo(), filename: " + inputFileName + ".laz");
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         double[] array = myInstance.getJNIHeaderInfo(inputFileName + ".laz");
+        return array;
+    }
+
+    public static double[][] getPointArray(String inputFileName, double minX, double maxX) {
+        System.out.println("Method JNI.getPointArray(), minX=,"+minX+", maxX"+maxX+" filename: " + inputFileName + ".laz");
+        JniLibraryHelpers myInstance = new JniLibraryHelpers();
+        double[][] array = myInstance.getJNIPointArrayRange(inputFileName + ".laz", minX, maxX);
+        System.out.println("Read " + array.length + " points");
         return array;
     }
 
