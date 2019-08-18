@@ -3,6 +3,7 @@ package com.slemenik.lidar.reconstruction.mountains;
 
 import com.slemenik.lidar.reconstruction.buildings.ShpController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
+import com.slemenik.lidar.reconstruction.main.DTO;
 import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.main.Main;
 import delaunay_triangulation.Delaunay_Triangulation;
@@ -51,31 +52,17 @@ public class MountainController {
 //    private double originalMaxZ = 0;
 //    private double originalMinZ = 0;
 
-    public MountainController(double[] lasHeaderParams) {
+    public MountainController(DTO.LasHeader lasHeader) {
 //        dmrFileName = new ArrayList<>();
-        setParams(lasHeaderParams);
-    }
-
-    /*sets class variables: all max and min values per coordiante, pointList, translation*/
-    private void setParams(double[] lasHeaderParams){
-        double minX = lasHeaderParams[0];
-        double maxX = lasHeaderParams[1];
-        double minY = lasHeaderParams[2];
-        double maxY = lasHeaderParams[3];
-        double minZ = lasHeaderParams[4];
-        double maxZ = lasHeaderParams[5];
-
-        double centerX = (minX + maxX)/2;
-        double centerY = (minY + maxY)/2;
-        double centerZ = (minZ + maxZ)/2;
+        double centerX = (lasHeader.minX + lasHeader.maxX)/2;
+        double centerY = (lasHeader.minY + lasHeader.maxY)/2;
+        double centerZ = (lasHeader.minZ +lasHeader. maxZ)/2;
 
         translationCenter.setTranslation(new Vector3d(centerX, centerY, centerZ));
         translationBack.setTranslation(new Vector3d(-centerX, -centerY, -centerZ));
     }
 
     public double[][] start() {
-
-
 //        List<Transform3D> transformationList = new ArrayList<>();
 
         System.out.println("similarAngleToleranceDegrees:" + similarAngleToleranceDegrees);
@@ -94,7 +81,7 @@ public class MountainController {
         System.out.println("Add points from default angles");
         //first we add points basaed on a couple of standard angles
         getDefaultAngles().stream().forEach(normal -> {
-            points2write.addAll(getPoints2WriteFromNormalAngle(normal)); //todo zakaj dobivam skor povsod 0 točk
+            points2write.addAll(getPoints2WriteFromNormalAngle(normal));
         });
          JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "standard"+tempCount);
 
@@ -147,6 +134,7 @@ public class MountainController {
         calculateRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
         if (transformation != null) { // transformation == null if we already did a transformation with similar angles //todo preglej a res pravilno izločimo nramle
 //                      transformationList.add(transformation);
+            System.out.println("-------------------------------------------------------------------------------------.");
             HelperClass.printLine(" ","searching for points in rotation: ", normal.getX(), normal.getY(), normal.getZ());
             List<Point3d> newPoints = getNewUntransformedPoints(transformation);
             newPoints.forEach(x->{
@@ -219,14 +207,14 @@ public class MountainController {
         }
 
         Main.OUTPUT_FILE_NAME = Main.INPUT_FILE_NAME + "+rotate";
-        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME, tempColor++);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME, tempColor++);
 //        if (true){//temp
 //            return new ArrayList<>(rotatedPointsTreeSet);
 //        }
 //
-        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet.stream().map(dd2->{
-            return new Point3d(dd2.x, dd2.y, 0);
-         }).collect(Collectors.toList())), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+".flat");
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet.stream().map(dd2->{
+//            return new Point3d(dd2.x, dd2.y, 0);
+//         }).collect(Collectors.toList())), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+".flat");
 
         double fragmentSize = (transMaxZ- transMinZ)/numberOfSegments;
 //        double currentMaxZDepth = transMinZ + fragmentSize; // we start in front and move to back until maxDepth
@@ -243,16 +231,17 @@ public class MountainController {
             if (point.z < currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
                 pointsCurrent = rotatedPointsTreeSet.headSet(point);
 
-                String outputfileTemp = Main.OUTPUT_FILE_NAME + ".segmentTo" + currentMaxZDepth;
-//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent), Main.INPUT_FILE_NAME, outputfileTemp);
-//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent.stream().map(dd2-> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
-                if (2602 < currentMaxZDepth && currentMaxZDepth < 2603) {
-                    int tempd = 5;
-                }
                 List<Point3d> missingPoints = getMissingPointsFromExisting(pointsCurrent, transMinX, transMaxX, transMinY, transMaxY); //todo mogoče namesto new ArrayList daš kar direkt Set in nato popraviš ostalo ustrezno
-                outputfileTemp += ".missingPoints";
-//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), Main.INPUT_FILE_NAME, outputfileTemp);
-//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2-> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
+
+//                boolean debug = pointsCurrent.size() == 2271442;
+                boolean debug = false;
+                if (debug) {
+                    String outputfileTemp = Main.OUTPUT_FILE_NAME + ".segmentTo" + currentMaxZDepth;
+//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent), Main.INPUT_FILE_NAME, outputfileTemp);
+//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
+                    outputfileTemp += ".missingPoints";
+                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), Main.INPUT_FILE_NAME, outputfileTemp);
+//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
 
                 addedUntransformedPointsList.addAll(missingPoints);
 

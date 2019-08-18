@@ -24,7 +24,7 @@ public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    public static final String INPUT_FILE_NAME = DATA_FOLDER + "original+odsek";//"410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
+    public static final String INPUT_FILE_NAME = DATA_FOLDER + "410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
     public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out";
     private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
@@ -142,7 +142,7 @@ public class Main {
     public static double[][] testMountainController(String[] args) {
         HelperClass.memory();
         double[] lasHeaderParams = JniLibraryHelpers.getHeaderInfo((INPUT_FILE_NAME));
-        MountainController mc = new MountainController(lasHeaderParams);
+        MountainController mc = new MountainController(new DTO.LasHeader(lasHeaderParams));
         //todo - if ppreveč točk, preberi jih manj
         mc.originalPointArray = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
         HelperClass.memory();
@@ -159,7 +159,12 @@ public class Main {
         } else { //temp, for testing only
 //            Transform3D transformation = mc.getRotationTransformation(-46.30999999997357, 0.010000000009313226, 0.010000000009313226); //standard test example
 //            mc.calculateRotationTransformation(0.6900000000000546, -0.01999999999998181, 1.0);
-            mc.calculateRotationTransformation(-1, -1, 0.0);
+//            mc.calculateRotationTransformation(-1, -1, 0.0);
+            mc.calculateRotationTransformation(-1, -1, 1.0); //trakovi so še zmerej tu, glej takoj prvi sloj, DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
+                                                                                        //public static final double CREATED_POINTS_SPACING = 0.6;
+                                                                                        //public static double similarAngleToleranceDegrees = 10;
+                                                                                        //public static double numberOfSegments = 15;
+                                                                                            //edini možen popravek je drugačen način odkrivanja borderja, da odkrije pač vse
             List<Point3d> newUntransformedPoints = mc.getNewUntransformedPoints(mc.transformation);
             newPoints = new double[newUntransformedPoints.size()][3];
 
