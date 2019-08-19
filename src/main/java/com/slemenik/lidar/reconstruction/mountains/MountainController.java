@@ -14,8 +14,13 @@ import org.locationtech.jts.geom.Coordinate;
 import javax.media.j3d.Transform3D;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -346,19 +351,20 @@ public class MountainController {
         double radius = 300.0;
 
         try {
-            Scanner scanner = new Scanner(new File(ascFileName));
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine();
+            InputStream is = new FileInputStream(ascFileName);
+            BufferedReader br=new BufferedReader(new InputStreamReader(is));
+            for (String line = br.readLine(); line != null; line = br.readLine()) {
                 String[] coordinates = line.split(";");
                 double x = Double.parseDouble(coordinates[0]);
                 double y = Double.parseDouble(coordinates[1]);
                 double z = Double.parseDouble(coordinates[2]);
 //                if (center.distance3D(new Coordinate(x,y,z)) < radius) {
-                    list.add(new Point_dt(x,y, z));
+                list.add(new Point_dt(x,y, z));
 //                }
 
             }
-            scanner.close();
+            br.close();
+            is.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -366,6 +372,7 @@ public class MountainController {
         return list.toArray(new Point_dt[0]);
 
     }
+
 
     public List<double[]> parseFolder(String folderPath, String lazFilename) {
         List<double[]> points2Insert = new ArrayList<>();
