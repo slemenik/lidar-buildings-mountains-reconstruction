@@ -46,7 +46,7 @@ public class ShpController {
         return featureSource;
     }
 
-    public static FeatureIterator getFeatures (int bounds[], String shpFileName) {
+    public static FeatureIterator getFeatures (double bounds[], String shpFileName) {
         try {
 
             FeatureSource oldFeatureSource = getFeatureSource(shpFileName);
@@ -87,7 +87,7 @@ public class ShpController {
         }
     }
 
-    public static int[] getBoundsFromFilename(String filename){
+    public static double[] getBoundsFromFilename(String filename){
         String fileName = FilenameUtils.getBaseName(filename);
         int bboxX = 0;
         int bboxY = 0;
@@ -104,7 +104,7 @@ public class ShpController {
 
             }
         }
-        return new int[]{bboxX*1000, bboxY*1000, (bboxX*1000)+1000, (bboxY*1000)+1000};
+        return new double[]{bboxX*1000, bboxY*1000, (bboxX*1000)+1000, (bboxY*1000)+1000};
     }
 
     public static void writeShpFile(FeatureSource oldFeatureSource, List<SimpleFeature> features, FeatureCollection oldFeatureCollection, String newFileName) {

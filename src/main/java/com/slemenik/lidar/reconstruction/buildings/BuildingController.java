@@ -29,11 +29,15 @@ public class BuildingController {
     public List<double[]> points2Insert = new ArrayList<>();
 
     public void write() {
-        int bounds[] = ShpController.getBoundsFromFilename(inputLazFileName);
+        double bounds[] = ShpController.getBoundsFromFilename(inputLazFileName);
         write(bounds);
     }
 
-    public void write(int[] bounds) {
+//    public double[][] start() {
+//
+//    }
+
+    public void write(double[] bounds) {
 
 
         FeatureIterator iterator = ShpController.getFeatures(bounds, shpFileName);

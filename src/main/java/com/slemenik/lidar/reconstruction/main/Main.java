@@ -33,11 +33,11 @@ public class Main {
 
     private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
     public static final double CREATED_POINTS_SPACING = 0.6;//2.0;//0.2;
-    private static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
-    private static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
-    private static final boolean CREATE_TEMP_FILE = true;
-    private static final int[] TEMP_BOUNDS = new int[]{462264, 100575, 462411, 100701};
-    private static  int COLOR = 5; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3-temno zelena;
+    public static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
+    public static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
+    public static final boolean CREATE_TEMP_FILE = true;
+    public static final double[] TEMP_BOUNDS = new double[]{462264, 100575, 462411, 100701};
+    public static  int COLOR = 5; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3-temno zelena;
 
     private static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 10;
 
