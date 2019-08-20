@@ -26,12 +26,13 @@ public class Main {
 
     public static final String INPUT_FILE_NAME = DATA_FOLDER + "410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
     public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out";
-    private static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
+    public static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
     private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
+    public static final String SHP_FILE_NAME = DATA_FOLDER + "BU_STAVBE_P.shp";
     private static final int MAX_POINT_NUMBER_IN_MEMORY_MILLION = 10; // največje število točk originalne datoteke, ki ga še preberemo v pomnilnik
                                                                       // če je točk več, se razdeli v več ločenih branj
 
-    private static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
+    public static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
     public static final double CREATED_POINTS_SPACING = 0.6;//2.0;//0.2;
     public static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
     public static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a

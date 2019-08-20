@@ -1,6 +1,8 @@
 package com.slemenik.lidar.reconstruction.buildings;
 
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
+import com.slemenik.lidar.reconstruction.main.DTO;
+import com.slemenik.lidar.reconstruction.main.Main;
 import org.geotools.feature.FeatureIterator;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.MultiPolygon;
@@ -26,7 +28,29 @@ public class BuildingController {
     public String outputFileName;
     public String shpFileName;
 
+    private double[] bounds;
+
+
     public List<double[]> points2Insert = new ArrayList<>();
+
+    public BuildingController(DTO.LasHeader headerDTO) {
+        this.inputLazFileName = Main.INPUT_FILE_NAME;
+        this.createTempLazFile = Main.CREATE_TEMP_FILE;
+        this.tempLazFileName = Main.TEMP_FILE_NAME;
+        this.boundingBoxFactor = Main.BOUNDING_BOX_FACTOR;
+        this.createdPointsSpacing = Main.CREATED_POINTS_SPACING;
+        this.distanceFromOriginalPointThreshold = Main.DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD;
+        this.considerExistingPoints = Main.CONSIDER_EXISTING_POINTS;
+        this.outputFileName = Main.OUTPUT_FILE_NAME;
+        this.shpFileName = Main.SHP_FILE_NAME;
+        this.bounds = new double[]{headerDTO.minX, headerDTO.minY, headerDTO.maxX, headerDTO.maxY };
+
+
+//        bc.write(TEMP_BOUNDS);
+//        return bc.points2Insert;
+    }
+
+    public BuildingController(){}
 
     public void write() {
         double bounds[] = ShpController.getBoundsFromFilename(inputLazFileName);
