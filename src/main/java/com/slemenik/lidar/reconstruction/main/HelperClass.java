@@ -3,6 +3,7 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
 import javax.vecmath.Point3d;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
@@ -44,6 +45,7 @@ public class HelperClass {
     }
 
     public static void printLine(String splitter, Object... params){
+        System.out.print("[" + LocalTime.now() + "] ");
         for (int i = 0; i<params.length; i++) {
             System.out.print(params[i]);
             if (i != params.length-1) {
