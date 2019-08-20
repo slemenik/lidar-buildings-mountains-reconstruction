@@ -3,6 +3,7 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +32,11 @@ public class Main {
     public static final String SHP_FILE_NAME = DATA_FOLDER + "BU_STAVBE_P.shp";
     private static final int MAX_POINT_NUMBER_IN_MEMORY_MILLION = 10; // največje število točk originalne datoteke, ki ga še preberemo v pomnilnik
                                                                       // če je točk več, se razdeli v več ločenih branj
+    private static final int SEGMENT_LENGTH_X_COORDINATE_LAS_FILE = 5; // the difference between min and max X coordinate,
+                                                                        // used for limiting read points so we read them
+                                                                        // segment by segments. By default the full file
+                                                                        // has a range of 1000, ex. 410000-411000
+                                                                        //~15mio points , range of 1 ~15k points
 
     public static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
     public static final double CREATED_POINTS_SPACING = 0.6;//2.0;//0.2;
@@ -79,6 +85,35 @@ public class Main {
         System.out.println("end");
     }
 
+    public static void pipelineStart(){
+        HelperClass.printLine(" ", "Pipeline start.");
+        double[] header = JniLibraryHelpers.getHeaderInfo(INPUT_FILE_NAME);
+        DTO.LasHeader headerDTO = new DTO.LasHeader(header);
+
+        double segmentLength = (double) MAX_POINT_NUMBER_IN_MEMORY_MILLION * 1000000 / 15000;
+        double absMaxX = headerDTO.maxX;
+        double absMinX = headerDTO.minX;
+        double currMinX = absMinX;
+        //split full file to multiple files, read and write one by one
+        while (currMinX < absMaxX) {
+
+            //change current min and max X to that of current reduce-sized point file
+            headerDTO.minX = currMinX;
+            headerDTO.minX = currMinX + segmentLength;
+            MountainController mc = new MountainController(headerDTO);
+
+            mc.originalPointArray = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, currMinX, currMinX + segmentLength);
+            mc.dmrFileName = DMR_FILE_NAME;
+            MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
+//        MountainController.numberOfSegments = 25; //temp - 19 is infinte loop
+
+            double[][] newPoints;
+                newPoints = mc.start();
+            currMinX += segmentLength;
+        }
+        HelperClass.printLine("", "End pipeline.");
+    }
+
     public static void tempTestFunction() {
 
 //        public static int point2Index(double coordinate, double min, double pointSpace) {//temp spremeni v private
@@ -99,6 +134,7 @@ public class Main {
 //
 //        System.out.println(EvenFieldController.index2Point(512, min, 0.6));
 //        System.out.println(EvenFieldController.index2Point(513, min, 0.6));
+        pipelineStart();
 
         return;
 
@@ -144,7 +180,7 @@ public class Main {
         HelperClass.memory();
         double[] lasHeaderParams = JniLibraryHelpers.getHeaderInfo((INPUT_FILE_NAME));
         MountainController mc = new MountainController(new DTO.LasHeader(lasHeaderParams));
-        //todo - if ppreveč točk, preberi jih manj
+
         mc.originalPointArray = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
         HelperClass.memory();
 
