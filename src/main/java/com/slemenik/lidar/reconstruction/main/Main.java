@@ -16,6 +16,7 @@ import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
+import org.apache.commons.lang3.ArrayUtils;
 
 import javax.media.j3d.Transform3D;
 import javax.vecmath.Point3d;
@@ -28,7 +29,7 @@ public class Main {
     public static final String INPUT_FILE_NAME = DATA_FOLDER + "410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
     public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out";
     public static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
-    private static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
+    public static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
     public static final String SHP_FILE_NAME = DATA_FOLDER + "BU_STAVBE_P.shp";
     private static final int MAX_POINT_NUMBER_IN_MEMORY_MILLION = 10; // največje število točk originalne datoteke, ki ga še preberemo v pomnilnik
                                                                       // če je točk več, se razdeli v več ločenih branj
@@ -46,7 +47,7 @@ public class Main {
     public static final double[] TEMP_BOUNDS = new double[]{462264, 100575, 462411, 100701};
     public static  int COLOR = 5; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3-temno zelena;
 
-    private static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 10;
+    public static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 10;
 
     public static void main(String[] args) {
         long startTime = System.nanoTime();
@@ -90,6 +91,8 @@ public class Main {
         double[] header = JniLibraryHelpers.getHeaderInfo(INPUT_FILE_NAME);
         DTO.LasHeader headerDTO = new DTO.LasHeader(header);
 
+        double[][] newPoints = new double[0][];
+
         double segmentLength = (double) MAX_POINT_NUMBER_IN_MEMORY_MILLION * 1000000 / 15000;
         double absMaxX = headerDTO.maxX;
         double absMinX = headerDTO.minX;
@@ -100,17 +103,19 @@ public class Main {
             //change current min and max X to that of current reduce-sized point file
             headerDTO.minX = currMinX;
             headerDTO.minX = currMinX + segmentLength;
+
+            BuildingController bc = new BuildingController(headerDTO);
             MountainController mc = new MountainController(headerDTO);
+            double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, currMinX, currMinX + segmentLength);
+            mc.originalPointArray = oldPoints;
 
-            mc.originalPointArray = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, currMinX, currMinX + segmentLength);
-            mc.dmrFileName = DMR_FILE_NAME;
-            MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
-//        MountainController.numberOfSegments = 25; //temp - 19 is infinte loop
+            double[][] newBuildingPoints = HelperClass.toResultDoubleArray(bc.getNewPoints(), 0);
+            double[][] newMountainsPoints = HelperClass.toResultDoubleArray(mc.getNewPoints(), 1);
+            newPoints = ArrayUtils.addAll(newBuildingPoints, newMountainsPoints);
 
-            double[][] newPoints;
-                newPoints = mc.start();
             currMinX += segmentLength;
         }
+        JniLibraryHelpers.writePointListWithClassification(newPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME);
         HelperClass.printLine("", "End pipeline.");
     }
 
@@ -186,11 +191,11 @@ public class Main {
 
         mc.dmrFileName = DMR_FILE_NAME;
         mc.tempStopCount = args.length;
-        MountainController.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
+        mc.similarAngleToleranceDegrees = MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
 //        MountainController.numberOfSegments = 25; //temp - 19 is infinte loop
 
         double[][] newPoints;
-        boolean allNormals = false;
+        boolean allNormals = true;
         if (allNormals) {
             newPoints = mc.start();
         } else { //temp, for testing only

@@ -23,6 +23,7 @@ public class JniLibraryHelpers {
     private native double[][] getJNIPointArray(String inputFileName);
     private native double[] getJNIHeaderInfo(String inputFileName);
     private native double[][] getJNIPointArrayRange(String inputFileName, double minX, double maxX);
+    private native int writeJNIPointListWithClassification(double[][] pointsArray, String inputFileName, String outputFileName); //classification is given inside pointsArray -> index 3
 
 
     public void printDouble(double d) {
@@ -96,6 +97,16 @@ public class JniLibraryHelpers {
         double[][] array = myInstance.getJNIPointArrayRange(inputFileName + ".laz", minX, maxX);
         System.out.println("Read " + array.length + " points");
         return array;
+    }
+
+    public static Integer writePointListWithClassification(double[][] list, String inputFileName, String outputFileName) {
+        if (list.length == 0) {
+            System.out.println("empty list, nothing to write.");
+            return -1;
+        }
+        JniLibraryHelpers myInstance = new JniLibraryHelpers();
+        System.out.println("klic funkcije writePointListWithClassification(), filename" + outputFileName +".laz");
+        return myInstance.writeJNIPointListWithClassification(list,inputFileName + ".laz", outputFileName +".laz");
     }
 
 

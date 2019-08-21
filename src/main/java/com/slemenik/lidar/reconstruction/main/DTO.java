@@ -1,10 +1,12 @@
 package com.slemenik.lidar.reconstruction.main;
 
+
 public class DTO {
 
     public static class LasHeader {
 
         public double minX, maxX, minY, maxY, minZ, maxZ;
+        public int pointRecordsNumber;
 
         public LasHeader(double[] lasHeaderParams) {
             this.minX = lasHeaderParams[0];
@@ -13,7 +15,8 @@ public class DTO {
             this.maxY = lasHeaderParams[3];
             this.minZ = lasHeaderParams[4];
             this.maxZ = lasHeaderParams[5];
-        }
 
+            this.pointRecordsNumber = (int)lasHeaderParams[7];
+        }
     }
 }

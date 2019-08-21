@@ -44,6 +44,29 @@ public class HelperClass {
 
     }
 
+    public static double[][] toResultDoubleArray(TreeSet treeSet, double classification) {
+        if (treeSet.isEmpty()){
+            return new double[][]{};
+        } else {
+            return ((SortedSet<Point3d>)treeSet).stream().map(point -> new double[]{point.x, point.y, point.z /*0/*temp*/, classification}).toArray(double[][]::new);//todo paralel streams?
+        }
+    }
+
+    public static double[][] toResultDoubleArray(List list,  double classification){
+        if (list.isEmpty()){
+            return new double[][]{};
+        } else if (list.get(0) instanceof double[]) {
+            return (double[][]) list.toArray(new double[][]{});
+        } else if (list.get(0) instanceof Point3d) {
+            return ((List<Point3d>) list).stream().map(point3d -> new double[]{point3d.x, point3d.y, point3d.z, classification}).toArray(double[][]::new);
+        } else if (list.get(0) instanceof int[]) {
+            return ((List<int[]>) list).stream().map(index -> new double[]{index[0], index[1], 0, classification}).toArray(double[][]::new);
+        } else {
+            return null;
+        }
+
+    }
+
     public static void printLine(String splitter, Object... params){
         System.out.print("[" + LocalTime.now() + "] ");
         for (int i = 0; i<params.length; i++) {

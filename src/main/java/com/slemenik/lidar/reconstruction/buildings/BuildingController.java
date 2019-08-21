@@ -57,9 +57,10 @@ public class BuildingController {
         write(bounds);
     }
 
-//    public double[][] start() {
-//
-//    }
+    public List<double[]> getNewPoints() {
+        write(bounds);
+        return this.points2Insert;
+    }
 
     public void write(double[] bounds) {
 

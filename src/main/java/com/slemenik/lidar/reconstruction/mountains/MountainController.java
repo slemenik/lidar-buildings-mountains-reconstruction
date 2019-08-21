@@ -33,7 +33,7 @@ public class MountainController {
 
     public String dmrFileName;
     public String outputName;
-    public static double similarAngleToleranceDegrees = 10;
+    public double similarAngleToleranceDegrees = 10;
     public static double numberOfSegments = 15;
     public double[][] originalPointArray;
 
@@ -65,9 +65,16 @@ public class MountainController {
 
         translationCenter.setTranslation(new Vector3d(centerX, centerY, centerZ));
         translationBack.setTranslation(new Vector3d(-centerX, -centerY, -centerZ));
+
+        this.dmrFileName = Main.DMR_FILE_NAME;
+        this.similarAngleToleranceDegrees = Main.MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
     }
 
     public double[][] start() {
+        return HelperClass.toResultDoubleArray(getNewPoints());
+    }
+
+    public TreeSet<Point3d> getNewPoints() {
 //        List<Transform3D> transformationList = new ArrayList<>();
 
         System.out.println("similarAngleToleranceDegrees:" + similarAngleToleranceDegrees);
@@ -110,7 +117,7 @@ public class MountainController {
 //        dt = null;
 //        transformationList.forEach(this::calculateNewPoints);
 
-        return HelperClass.toResultDoubleArray(points2write);
+        return points2write;
 
     }
 
@@ -297,7 +304,7 @@ public class MountainController {
         double aroundYtoZAngle = Math.asin(xyLength/xyzLength); // z cannot be < 0; direction always + (from +x to +z)
 
         //check if similiar transformation was alredy done
-        if (similarTransformationExists(aroundZToXAngle, aroundYtoZAngle, pastTransformationsAngles)) {
+        if (similarTransformationExists(aroundZToXAngle, aroundYtoZAngle, pastTransformationsAngles, similarAngleToleranceDegrees)) {
             transformation = null;
         } else {
             pastTransformationsAngles.add(new double[]{aroundZToXAngle, aroundYtoZAngle});
@@ -327,7 +334,7 @@ public class MountainController {
         transformationBack.mul(translationBack);
     }
 
-    private static boolean similarTransformationExists(double potentialAngle1, double potentialAngle2, List<double[]> angleList) {
+    private static boolean similarTransformationExists(double potentialAngle1, double potentialAngle2, List<double[]> angleList, double similarAngleToleranceDegrees) {
         for (double[] angles : angleList) {
             double existingAngle1 = angles[0];
             double existingAngle2 = angles[1];
@@ -376,7 +383,7 @@ public class MountainController {
 
     public List<double[]> parseFolder(String folderPath, String lazFilename) {
         List<double[]> points2Insert = new ArrayList<>();
-        int bounds[] = ShpController.getBoundsFromFilename(lazFilename);
+        double bounds[] = ShpController.getBoundsFromFilename(lazFilename);
         File fileList[] = new File(folderPath).listFiles();
         for(File file : fileList) {
             System.out.println("File z imenom:" + file.getName());
