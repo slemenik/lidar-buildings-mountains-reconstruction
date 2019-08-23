@@ -33,9 +33,10 @@ public class MountainController {
 
     public String dmrFileName;
     public String outputName;
-    public double similarAngleToleranceDegrees = 10;
+    public double similarAngleToleranceDegrees;
     public static double numberOfSegments = 15;
     public double[][] originalPointArray;
+    private double[] boundsX;
 
     public int tempStopCount = 0;
     private int tempCount = 0;
@@ -57,7 +58,7 @@ public class MountainController {
 //    private double originalMaxZ = 0;
 //    private double originalMinZ = 0;
 
-    public MountainController(DTO.LasHeader lasHeader) {
+    public MountainController(DTO.LasHeader lasHeader, double[][] oldPoints) {
 //        dmrFileName = new ArrayList<>();
         double centerX = (lasHeader.minX + lasHeader.maxX)/2;
         double centerY = (lasHeader.minY + lasHeader.maxY)/2;
@@ -68,6 +69,8 @@ public class MountainController {
 
         this.dmrFileName = Main.DMR_FILE_NAME;
         this.similarAngleToleranceDegrees = Main.MOUNTAINS_ANGLE_TOLERANCE_DEGREES;
+        this.originalPointArray = oldPoints;
+        this.boundsX = new double[] {lasHeader.minX, lasHeader.maxX};
     }
 
     public double[][] start() {
@@ -93,17 +96,17 @@ public class MountainController {
         System.out.println("Add points from default angles");
         //first we add points basaed on a couple of standard angles
         getDefaultAngles().stream().forEach(normal -> {
-            points2write.addAll(getPoints2WriteFromNormalAngle(normal));
+//            points2write.addAll(getPoints2WriteFromNormalAngle(normal));
         });
-         JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "standard"+tempCount);
+//         JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "standard"+tempCount);
 
 
         System.out.println("Points from default angles added. Now we add points based on DMR.");
-        Point_dt[] dmrPointList = getDmrFromFile(dmrFileName);
+        Point_dt[] dmrPointList = getDmrFromFile(dmrFileName, boundsX);
 
-        System.out.println("Start triangulation");
+        HelperClass.printLine(" ", "Start triangulation");
         Delaunay_Triangulation dt = new Delaunay_Triangulation(dmrPointList);
-        System.out.println("End triangulation");
+        HelperClass.printLine(" ", "End triangulation");
 
         dmrPointList = null; //garbage collector optimization
         dt.trianglesIterator().forEachRemaining(triangleDt -> {
@@ -155,7 +158,7 @@ public class MountainController {
             });
 //            if (tempCount2 % 10 == 0) {
                 System.out.println("So far we have "+points2write.size()+" new points from " + tempCount2+" different angles");
-                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ tempCount2);
+//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ tempCount2);
 //            }
             tempCount2++;
         }
@@ -203,6 +206,7 @@ public class MountainController {
         double transMaxZ = 0;
         Point3d originalPoint;
         for (double[] point : originalPointArray) {
+            double classification = point[3];
             originalPoint = new Point3d(point[0], point[1], point[2]);
             Point3d newPoint = new Point3d();
             transformation.transform(originalPoint, newPoint);
@@ -255,6 +259,11 @@ public class MountainController {
                     JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), Main.INPUT_FILE_NAME, outputfileTemp);
 //                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
 
+                    if (pointsCurrent.size() == 2271442) {
+                        System.exit(-222);
+
+                    }
+                }
                 addedUntransformedPointsList.addAll(missingPoints);
 
                 //add new points of current segment to treeSet, treat them as other points
@@ -350,7 +359,7 @@ public class MountainController {
 
     /*returns array of object Point_dt with coordinates from DMR file*/
     /*used for triangulation*/
-    public static Point_dt[] getDmrFromFile(String ascFileName) {
+    public static Point_dt[] getDmrFromFile(String ascFileName, double[] bounds) {
         System.out.println("method getDmrFromFile()");
         List<Point_dt> list = new ArrayList<>();
 //        int i = 0;
@@ -366,6 +375,9 @@ public class MountainController {
                 double y = Double.parseDouble(coordinates[1]);
                 double z = Double.parseDouble(coordinates[2]);
 //                if (center.distance3D(new Coordinate(x,y,z)) < radius) {
+                if (bounds != null && bounds[0] < x && x < bounds[1]) {
+                    continue; //if x is not inside bounds we don't write to list
+                }
                 list.add(new Point_dt(x,y, z));
 //                }
 

@@ -19,12 +19,13 @@ public class JniLibraryHelpers {
     private native void writeJNIPoint(double x, double y, double z);
     private native int writeJNIPointList(double[][] pointsArray, String inputFileName, String outputFileName, int classification);
     private native double[] getJNIMinMaxHeight(double x, double y, double radius, String inputFileName );
+    private native double[] getJNIMinMaxHeightBBox(double x, double y, double radius, String inputFileName, double bbox1, double bbox2, double bbox3, double bbox4);
     //private native int createTempLaz(double minX, double miny, double maxX, double maxY, String tempFileName, String inputFileName );
     private native double[][] getJNIPointArray(String inputFileName);
     private native double[] getJNIHeaderInfo(String inputFileName);
     private native double[][] getJNIPointArrayRange(String inputFileName, double minX, double maxX);
     private native int writeJNIPointListWithClassification(double[][] pointsArray, String inputFileName, String outputFileName); //classification is given inside pointsArray -> index 3
-
+    private native double[][] getJNIPointArrayParams(String inputFileName, String[] params);
 
     public void printDouble(double d) {
         System.out.println(d);
@@ -67,7 +68,13 @@ public class JniLibraryHelpers {
     public static double[] getMinMaxHeight(double x, double y, double threshold, String inputFileName) {
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         //System.out.println("klic funkcije getMinMaxHeight("+x+", "+ y+")");
-        return myInstance.getJNIMinMaxHeight( x, y, threshold, inputFileName );
+        return myInstance.getJNIMinMaxHeight( x, y, threshold, inputFileName + ".laz" );
+    }
+
+    public static double[] getMinMaxHeight(double x, double y, double threshold, String inputFileName, double bboxMinX, double bboxMinY, double bboxMaxX, double bboxMaxY) {
+        JniLibraryHelpers myInstance = new JniLibraryHelpers();
+        //System.out.println("klic funkcije getMinMaxHeight("+x+", "+ y+")");
+        return myInstance.getJNIMinMaxHeightBBox( x, y, threshold, inputFileName + ".laz", bboxMinX, bboxMinY, bboxMaxX, bboxMaxY );
     }
 
 //    public static int createTempLaz(double minX, double miny,double maxX, double maxY, String tempFileName, String inputFileName) {
@@ -107,6 +114,14 @@ public class JniLibraryHelpers {
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         System.out.println("klic funkcije writePointListWithClassification(), filename" + outputFileName +".laz");
         return myInstance.writeJNIPointListWithClassification(list,inputFileName + ".laz", outputFileName +".laz");
+    }
+
+    public static double[][] getPointArray(String inputFileName, String[] params) {
+        System.out.println("Method JNI.getPointArray(), filename: " + inputFileName + ".laz, params: " + String.join(", ", params));
+        JniLibraryHelpers myInstance = new JniLibraryHelpers();
+        double[][] array = myInstance.getJNIPointArrayParams(inputFileName + ".laz", params);
+        System.out.println("Read " + array.length + " points");
+        return array;
     }
 
 

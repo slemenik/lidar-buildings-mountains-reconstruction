@@ -16,7 +16,7 @@ public class DTO {
             this.minZ = lasHeaderParams[4];
             this.maxZ = lasHeaderParams[5];
 
-            this.pointRecordsNumber = (int)lasHeaderParams[7];
+            this.pointRecordsNumber = (int)lasHeaderParams[6];
         }
     }
 }

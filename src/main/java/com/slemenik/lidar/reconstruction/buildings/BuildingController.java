@@ -2,6 +2,7 @@ package com.slemenik.lidar.reconstruction.buildings;
 
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import com.slemenik.lidar.reconstruction.main.DTO;
+import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.main.Main;
 import org.geotools.feature.FeatureIterator;
 import org.locationtech.jts.geom.Coordinate;
@@ -9,12 +10,16 @@ import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.math.Vector2D;
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
+import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.geometry.BoundingBox;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+//import static com.slemenik.lidar.reconstruction.buildings.ShpController.oldFeatureCollectiontemp;
+//import static com.slemenik.lidar.reconstruction.buildings.ShpController.oldFeatureSourcetemp;
 
 public class BuildingController {
 
@@ -30,7 +35,6 @@ public class BuildingController {
 
     private double[] bounds;
 
-
     public List<double[]> points2Insert = new ArrayList<>();
 
     public BuildingController(DTO.LasHeader headerDTO) {
@@ -44,7 +48,7 @@ public class BuildingController {
         this.outputFileName = Main.OUTPUT_FILE_NAME;
         this.shpFileName = Main.SHP_FILE_NAME;
         this.bounds = new double[]{headerDTO.minX, headerDTO.minY, headerDTO.maxX, headerDTO.maxY };
-
+        //this is not original header minx and maxy but changed one
 
 //        bc.write(TEMP_BOUNDS);
 //        return bc.points2Insert;
@@ -58,7 +62,49 @@ public class BuildingController {
     }
 
     public List<double[]> getNewPoints() {
-        write(bounds);
+        HelperClass.printLine(" ", "Function BuildingController.getNewPoints()");
+        FeatureIterator iterator = ShpController.getFeatures(bounds, shpFileName);
+        List<SimpleFeature> features = new ArrayList<>();
+        int index = 0;
+        while (iterator.hasNext()) {
+
+            Feature feature = iterator.next();
+            System.out.print("create temp laz file... ");
+            BoundingBox boundingBox = feature.getBounds();
+            String CMDparams = String.format(Locale.ROOT,
+                    "las2las.exe -i %s -o %s -keep_xy %f %f %f %f",
+                    inputLazFileName + ".laz", tempLazFileName + ".laz",
+                    boundingBox.getMinX()- boundingBoxFactor,
+                    boundingBox.getMinY()- boundingBoxFactor,
+                    boundingBox.getMaxX()+ boundingBoxFactor,
+                    boundingBox.getMaxY()+ boundingBoxFactor
+            );
+            try {
+                Runtime.getRuntime().exec(CMDparams).waitFor();
+            } catch (IOException | InterruptedException e) {
+                System.out.println("Error creating temp .laz file: " + e);
+                System.out.print("Reading from input file...");
+                tempLazFileName = inputLazFileName;
+            }
+            System.out.println("Done");
+            Property geom = feature.getProperty("the_geom");
+            System.out.println("Stavba"+index++);
+            MultiPolygon buildingPolygon = (MultiPolygon) geom.getValue();
+            Coordinate[] buildingVertices = buildingPolygon.getCoordinates();
+            for (int i = 0; i < buildingVertices.length - 1; i++ ) { //for each until the one before last
+                Coordinate vertexFrom =  buildingVertices[i];
+                Coordinate vertexTo = buildingVertices[i+1];
+                createWall(vertexFrom, vertexTo, null);
+            }
+             features.add((SimpleFeature)feature); //uncomment if write shp to file
+
+            System.out.println();
+            System.out.println("-------------------------------------------");
+        }
+        iterator.close();
+        System.out.println("END BuildingController.getNewPoints()");
+//                    ShpController.writeShpFile( oldFeatureSourcetemp,  features, oldFeatureCollectiontemp, "tempppp.shp");
+
         return this.points2Insert;
     }
 
@@ -144,7 +190,7 @@ public class BuildingController {
             for (int i = 0; i < buildingVertices.length - 1; i++ ) { //for each until the one before last
                 Coordinate vertexFrom =  buildingVertices[i];
                 Coordinate vertexTo = buildingVertices[i+1];
-                createWall(vertexFrom, vertexTo);
+                createWall(vertexFrom, vertexTo, null);
             }
             System.out.println();
 
@@ -172,12 +218,12 @@ public class BuildingController {
     }
 
 
-    public void createWall(Coordinate startCoordinate, Coordinate endCoordinate) {
+    public void createWall(Coordinate startCoordinate, Coordinate endCoordinate, Feature feature) {
         System.out.println("Ustvari zid od " + startCoordinate + " do " + endCoordinate);
         Coordinate currentCoordinate = startCoordinate.copy();
         double wallLength = startCoordinate.distance(endCoordinate);
         while (startCoordinate.distance(currentCoordinate) <= wallLength) {
-            createHeightLine(currentCoordinate);
+            createHeightLine(currentCoordinate, feature);
             currentCoordinate = getNextCoordinate(currentCoordinate, endCoordinate, createdPointsSpacing);
         }
         System.out.println("Zid ustvarjen.");
@@ -193,10 +239,19 @@ public class BuildingController {
         }
     }
 
-
-    private void createHeightLine(Coordinate c) {
+    private void createHeightLine(Coordinate c, Feature feature) {
 //        System.out.println("Ustvari točke na koordinati " + c);
-        double[] coordinates = JniLibraryHelpers.getMinMaxHeight(c.x,c.y, distanceFromOriginalPointThreshold, tempLazFileName);
+        double[] coordinates;
+        if (feature != null) {
+            BoundingBox boundingBox = feature.getBounds();
+            double minX = boundingBox.getMinX()- boundingBoxFactor;
+            double minY = boundingBox.getMinY()- boundingBoxFactor;
+            double maxX = boundingBox.getMaxX()+ boundingBoxFactor;
+            double maxY = boundingBox.getMaxY()+ boundingBoxFactor;
+            coordinates = JniLibraryHelpers.getMinMaxHeight(c.x,c.y, distanceFromOriginalPointThreshold, inputLazFileName, minX, minY, maxX, maxY);
+        } else {
+           coordinates = JniLibraryHelpers.getMinMaxHeight(c.x,c.y, distanceFromOriginalPointThreshold, tempLazFileName);
+        }
         if (considerExistingPoints){
             createPoints(coordinates[0], coordinates[1], coordinates[2], coordinates[3]);
         } else {

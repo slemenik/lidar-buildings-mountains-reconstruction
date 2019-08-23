@@ -3,8 +3,6 @@ package com.slemenik.lidar.reconstruction.main;
 import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
-import java.time.LocalTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -18,7 +16,6 @@ import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
 import org.apache.commons.lang3.ArrayUtils;
 
-import javax.media.j3d.Transform3D;
 import javax.vecmath.Point3d;
 
 
@@ -26,12 +23,12 @@ public class Main {
 
     public static final String DATA_FOLDER = ".";
 
-    public static final String INPUT_FILE_NAME = DATA_FOLDER + "410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
+    public static final String INPUT_FILE_NAME = DATA_FOLDER + "410_137_triglav";//"GK_458_109";//"410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
     public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out";
     public static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
-    public static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_410_137.asc";
-    public static final String SHP_FILE_NAME = DATA_FOLDER + "BU_STAVBE_P.shp";
-    private static final int MAX_POINT_NUMBER_IN_MEMORY_MILLION = 10; // največje število točk originalne datoteke, ki ga še preberemo v pomnilnik
+    public static final String DMR_FILE_NAME = DATA_FOLDER + "GK1_458_109.asc";//"GK1_410_137.asc";
+    public static final String SHP_FILE_NAME = DATA_FOLDER + "/stavbe/BU_STAVBE_P.shp";
+    private static final double MAX_POINT_NUMBER_IN_MEMORY_MILLION = 1; // največje število točk originalne datoteke, ki ga še preberemo v pomnilnik
                                                                       // če je točk več, se razdeli v več ločenih branj
     private static final int SEGMENT_LENGTH_X_COORDINATE_LAS_FILE = 5; // the difference between min and max X coordinate,
                                                                         // used for limiting read points so we read them
@@ -46,7 +43,17 @@ public class Main {
     public static final boolean CREATE_TEMP_FILE = true;
     public static final double[] TEMP_BOUNDS = new double[]{462264, 100575, 462411, 100701};
     public static  int COLOR = 5; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3-temno zelena;
-
+    private static int[] READ_CLASSIFICATION = new int[]{0,1,2/*,3,4,6,7*/};
+    /*
+    0 - ustvarjana, vendar nikoli klasificirane točke
+    1- neklasificirane točke
+    2- tla(ang. ground)
+    3- nizka vegetacija, do 1 m
+    4- srednja vegetacija, 1 m do 3 m
+    5 - visoka vegetacija, nad 3 m
+    6 - zgradbe
+    7- nizka točka (šum)
+    */
     public static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 10;
 
     public static void main(String[] args) {
@@ -93,7 +100,8 @@ public class Main {
 
         double[][] newPoints = new double[0][];
 
-        double segmentLength = (double) MAX_POINT_NUMBER_IN_MEMORY_MILLION * 1000000 / 15000;
+        double segmentLength =  1000/(headerDTO.pointRecordsNumber/(MAX_POINT_NUMBER_IN_MEMORY_MILLION * 1000000));
+//        double segmentLength =  MAX_POINT_NUMBER_IN_MEMORY_MILLION * 1000000 / (headerDTO.pointRecordsNumber/1000)//15000;
         double absMaxX = headerDTO.maxX;
         double absMinX = headerDTO.minX;
         double currMinX = absMinX;
@@ -105,18 +113,36 @@ public class Main {
             headerDTO.minX = currMinX + segmentLength;
 
             BuildingController bc = new BuildingController(headerDTO);
-            MountainController mc = new MountainController(headerDTO);
-            double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, currMinX, currMinX + segmentLength);
-            mc.originalPointArray = oldPoints;
+//            double[][] newBuildingPoints = HelperClass.toResultDoubleArray(bc.getNewPoints(), 64);
+//            JniLibraryHelpers.writePointListWithClassification(newBuildingPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME); //temp
 
-            double[][] newBuildingPoints = HelperClass.toResultDoubleArray(bc.getNewPoints(), 0);
-            double[][] newMountainsPoints = HelperClass.toResultDoubleArray(mc.getNewPoints(), 1);
-            newPoints = ArrayUtils.addAll(newBuildingPoints, newMountainsPoints);
+            String[] params = getJNIparams(currMinX, currMinX + segmentLength);
+            double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, params);
+//            double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, currMinX, currMinX + segmentLength);
+            JniLibraryHelpers.writePointListWithClassification(oldPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME+"kek");
+
+            HelperClass.memory();
+            MountainController mc = new MountainController(headerDTO, oldPoints);
+            double[][] newMountainsPoints = HelperClass.toResultDoubleArray(mc.getNewPoints(), 65);
+//            newPoints = ArrayUtils.addAll(newBuildingPoints, newMountainsPoints);
 
             currMinX += segmentLength;
         }
         JniLibraryHelpers.writePointListWithClassification(newPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME);
         HelperClass.printLine("", "End pipeline.");
+    }
+
+    public static String[] getJNIparams(double minX, double maxX) {
+        String[] result = new String[READ_CLASSIFICATION.length + 5];
+        result[0] = "dummy";
+        result[1] = "-keep_x";
+        result[2] = String.valueOf(minX);
+        result[3] = String.valueOf(maxX);
+        result[4] = "-keep_class";
+        for (int i = 5; i < result.length; i++) {
+            result[i] = String.valueOf(READ_CLASSIFICATION[i-5]);
+        }
+        return result;
     }
 
     public static void tempTestFunction() {
@@ -139,6 +165,45 @@ public class Main {
 //
 //        System.out.println(EvenFieldController.index2Point(512, min, 0.6));
 //        System.out.println(EvenFieldController.index2Point(513, min, 0.6));
+//        double[][] a = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+//        List<double[]> c0 = new ArrayList<>();
+//        List<double[]> c1 = new ArrayList<>();
+//        List<double[]> c2 = new ArrayList<>();
+//        List<double[]> c3 = new ArrayList<>();
+//        List<double[]> c4 = new ArrayList<>();
+//        List<double[]> c5 = new ArrayList<>();
+//        List<double[]> c6 = new ArrayList<>();
+//        List<double[]> c7 = new ArrayList<>();
+//        List<double[]> c8 = new ArrayList<>();
+//        for (double[] b: a
+//             ) {
+//            switch ((int)b[3]) {
+//                case 0: c0.add(b); break;
+//                case 1: c1.add(b); break;
+//                case 2: c2.add(b); break;
+//                case 3: c3.add(b); break;
+//                case 4: c4.add(b); break;
+//                case 5: c5.add(b); break;
+//                case 6: c6.add(b); break;
+//                case 7: c7.add(b); break;
+//                case 8: c8.add(b); break;
+//                default: System.out.println(b[3]);
+//            }
+//        }
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c0), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 0);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c1), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 1);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c2), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 2);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c3), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 3);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c4), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 4);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c5), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 5);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c6), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 6);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c7), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 7);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c8), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 8);
+
+        String params[] = new String[]{"dummy", "-keep_x", "410500", "410600", "-keep_class", "0", "1", "2", "3", "4" };
+//        double[][] t = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, params);
+//        JniLibraryHelpers.writePointListWithClassification(t, INPUT_FILE_NAME, OUTPUT_FILE_NAME + 8);
+
         pipelineStart();
 
         return;
@@ -167,15 +232,15 @@ public class Main {
 
     public static void testHeapSpace(){
 
-        double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
-        double[][] arr2 = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
-        double[][] arr3 = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
-        double[][] arr4 = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+//        double[][] arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+//        double[][] arr2 = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+//        double[][] arr3 = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
+//        double[][] arr4 = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
 
     }
 
     public static void writeOBJ() {
-        Point_dt[] list = MountainController.getDmrFromFile(DMR_FILE_NAME);
+        Point_dt[] list = MountainController.getDmrFromFile(DMR_FILE_NAME, null);
         Delaunay_Triangulation dt = new Delaunay_Triangulation(list);
         try { dt.write_smf("smf.obj"); } catch (Exception e) {}
     }
@@ -184,7 +249,7 @@ public class Main {
     public static double[][] testMountainController(String[] args) {
         HelperClass.memory();
         double[] lasHeaderParams = JniLibraryHelpers.getHeaderInfo((INPUT_FILE_NAME));
-        MountainController mc = new MountainController(new DTO.LasHeader(lasHeaderParams));
+        MountainController mc = new MountainController(new DTO.LasHeader(lasHeaderParams), null);
 
         mc.originalPointArray = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
         HelperClass.memory();
