@@ -1,5 +1,7 @@
 package com.slemenik.lidar.reconstruction.jni;
 
+import com.slemenik.lidar.reconstruction.main.HelperClass;
+
 public class JniLibraryHelpers {
 
 
@@ -28,11 +30,11 @@ public class JniLibraryHelpers {
     private native double[][] getJNIPointArrayParams(String inputFileName, String[] params);
 
     public void printDouble(double d) {
-        System.out.println(d);
+        HelperClass.printLine("", d);
     }
 
     public void printString(String s) {
-        System.out.println(s);
+        HelperClass.printLine("", s);
     }
 
     public static Integer writePointList(String inputFileName, String outputFileName) {
@@ -47,7 +49,7 @@ public class JniLibraryHelpers {
     }
 
     public static Integer writePointList(double[][] list, String inputFileName, String outputFileName) {
-        return writePointList(list, inputFileName,  outputFileName + colorTemp, colorTemp++);
+        return writePointList(list, inputFileName,  outputFileName + "-" + colorTemp, colorTemp++);
     }
 
     public static Integer writePointList(double[][] list, String inputFileName, String outputFileName, int intColor) {
@@ -56,7 +58,7 @@ public class JniLibraryHelpers {
             return -1;
         }
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
-        System.out.println("klic funkcije writeJNIPointList(), filename" + outputFileName +".laz");
+        HelperClass.printLine("", "klic funkcije writeJNIPointList(), filename" + outputFileName +".laz");
 
 //        System.out.println(" seznam tock je: ");
 //        for (int i = 0; i<list.length;i++) {
@@ -84,22 +86,22 @@ public class JniLibraryHelpers {
 //    }
 
     public static double[][] getPointArray(String inputFileName) {
-        System.out.println("Method JNI.getPointArray(), filename: " + inputFileName + ".laz");
+        HelperClass.printLine(" ", "Method JNI.getPointArray(), filename: " + inputFileName + ".laz");
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         double[][] array = myInstance.getJNIPointArray(inputFileName + ".laz");
-        System.out.println("Read " + array.length + " points");
+        HelperClass.printLine(" ", "Read " + array.length + " points");
         return array;
     }
 
     public static double[] getHeaderInfo(String inputFileName) {
-        System.out.println("Method JNI.getHeaderInfo(), filename: " + inputFileName + ".laz");
+        HelperClass.printLine(" ", "Method JNI.getHeaderInfo(), filename: " + inputFileName + ".laz");
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         double[] array = myInstance.getJNIHeaderInfo(inputFileName + ".laz");
         return array;
     }
 
     public static double[][] getPointArray(String inputFileName, double minX, double maxX) {
-        System.out.println("Method JNI.getPointArray(), minX=,"+minX+", maxX"+maxX+" filename: " + inputFileName + ".laz");
+        HelperClass.printLine(" ", "Method JNI.getPointArray(), minX=,"+minX+", maxX"+maxX+" filename: " + inputFileName + ".laz");
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         double[][] array = myInstance.getJNIPointArrayRange(inputFileName + ".laz", minX, maxX);
         System.out.println("Read " + array.length + " points");
@@ -112,15 +114,15 @@ public class JniLibraryHelpers {
             return -1;
         }
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
-        System.out.println("klic funkcije writePointListWithClassification(), filename" + outputFileName +".laz");
+        HelperClass.printLine(" ","klic funkcije writePointListWithClassification(), filename" + outputFileName +".laz");
         return myInstance.writeJNIPointListWithClassification(list,inputFileName + ".laz", outputFileName +".laz");
     }
 
     public static double[][] getPointArray(String inputFileName, String[] params) {
-        System.out.println("Method JNI.getPointArray(), filename: " + inputFileName + ".laz, params: " + String.join(", ", params));
+        HelperClass.printLine(" ","Method JNI.getPointArray(), filename: " + inputFileName + ".laz, params: " + String.join(", ", params));
         JniLibraryHelpers myInstance = new JniLibraryHelpers();
         double[][] array = myInstance.getJNIPointArrayParams(inputFileName + ".laz", params);
-        System.out.println("Read " + array.length + " points");
+        HelperClass.printLine("","Read " + array.length + " points");
         return array;
     }
 

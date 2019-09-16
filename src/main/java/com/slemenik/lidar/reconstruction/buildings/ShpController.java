@@ -1,5 +1,6 @@
 package com.slemenik.lidar.reconstruction.buildings;
 
+import com.slemenik.lidar.reconstruction.main.HelperClass;
 import org.apache.commons.io.FilenameUtils;
 import org.geotools.data.*;
 import org.geotools.data.collection.ListFeatureCollection;
@@ -18,12 +19,16 @@ import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
 import java.io.File;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
 public class ShpController {
+
+//    static FeatureCollection oldFeatureCollectiontemp;
+//    static FeatureSource oldFeatureSourcetemp;
 
     public static FeatureSource getFeatureSource(String shpFileName) {
         File file = new File(shpFileName);
@@ -41,7 +46,7 @@ public class ShpController {
             featureSource = dataStore.getFeatureSource(typeName);
 
         } catch (Throwable e) {
-            System.out.println(e);
+            HelperClass.printLine(" ", "moja napaka, metoda ShpController.getFeatureSource(): ", e );
         }
         return featureSource;
     }
@@ -50,6 +55,7 @@ public class ShpController {
         try {
 
             FeatureSource oldFeatureSource = getFeatureSource(shpFileName);
+//            oldFeatureSourcetemp = oldFeatureSource;
 
             String typeName = "BU_STAVBE_P";
 
@@ -70,7 +76,7 @@ public class ShpController {
 
             Query query = new Query(typeName, filter, new String[] {name});
             FeatureCollection oldFeatureCollection = oldFeatureSource.getFeatures(query);
-
+//            oldFeatureCollectiontemp = oldFeatureCollection;
 //            System.out.println(oldFeatureSource.getFeatures(query).size());
 //            System.out.println(oldFeatureSource.getFeatures().size());
 

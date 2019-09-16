@@ -12,6 +12,10 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.locationtech.jts.geom.Coordinate;
 
 import javax.media.j3d.Transform3D;
+import javax.vecmath.AxisAngle4d;
+import javax.vecmath.GMatrix;
+import javax.vecmath.GVector;
+import javax.vecmath.Matrix3d;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 import java.io.BufferedReader;
@@ -42,6 +46,7 @@ public class MountainController {
     private int tempCount = 0;
     private int tempCount2 = 0;
     private int tempColor = 0;
+    public static boolean debug = false;
 
     public Transform3D transformation = new Transform3D(); //used for rotating points to desired angle
     public Transform3D transformationBack = new Transform3D(); //used for rotating points back to original view
@@ -96,24 +101,31 @@ public class MountainController {
         System.out.println("Add points from default angles");
         //first we add points basaed on a couple of standard angles
         getDefaultAngles().stream().forEach(normal -> {
-//            points2write.addAll(getPoints2WriteFromNormalAngle(normal));
+            points2write.addAll(getPoints2WriteFromNormalAngle(normal));
         });
 //         JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "standard"+tempCount);
 
+        if (true){
+            return null;
+        }
 
         System.out.println("Points from default angles added. Now we add points based on DMR.");
         Point_dt[] dmrPointList = getDmrFromFile(dmrFileName, boundsX);
-
+        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(dmrPointList),  Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "_dmr_"+tempCount);
         HelperClass.printLine(" ", "Start triangulation");
         Delaunay_Triangulation dt = new Delaunay_Triangulation(dmrPointList);
         HelperClass.printLine(" ", "End triangulation");
 
+        //final Integer[] i = {0};
         dmrPointList = null; //garbage collector optimization
         dt.trianglesIterator().forEachRemaining(triangleDt -> {
             if (!triangleDt.isHalfplane()) {
+                HelperClass.memory();
                 Vector3D normal = getNormalVector(triangleDt.p1(), triangleDt.p2(), triangleDt.p3());
                 points2write.addAll(getPoints2WriteFromNormalAngle(normal));
+                //System.out.println(i[0]++);
             }
+
         });
         //all, 1998099, actual transofirn , 8523, difference, 1989576, similarAngleToleranceDegrees=10
         HelperClass.printLine(", ","all", tempCount, "actual transofirn ", tempCount2, "difference", tempCount-tempCount2);
@@ -156,9 +168,10 @@ public class MountainController {
                 transformationBack.transform(x);
                 points2write.add(x);
             });
+            newPoints = null;//garbage collector optimization?
 //            if (tempCount2 % 10 == 0) {
-                System.out.println("So far we have "+points2write.size()+" new points from " + tempCount2+" different angles");
-//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ tempCount2);
+                System.out.println("So far we have "+points2write.size()+" new points from " + (tempCount2+1)+" different angles");
+                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "-FinResultKota-"+tempCount2);
 //            }
             tempCount2++;
         }
@@ -168,7 +181,7 @@ public class MountainController {
 
     /*return a list of new points that are positioned accorindg to transformation param*/
     public List<Point3d> getNewUntransformedPoints(Transform3D transformation){
-        System.out.println("function getNewUntransformedPoints()");
+        HelperClass.printLine("","function getNewUntransformedPoints()");
         TreeSet<Point3d> rotatedPointsTreeSet = new TreeSet<>((p1, p2) -> {
             int compareX = Double.compare(p1.x, p2.x);
             int compareY = Double.compare(p1.y, p2.y);
@@ -223,7 +236,7 @@ public class MountainController {
         }
 
         Main.OUTPUT_FILE_NAME = Main.INPUT_FILE_NAME + "+rotate";
-//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME, tempColor++);
+        if (debug) JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME, tempColor++);
 //        if (true){//temp
 //            return new ArrayList<>(rotatedPointsTreeSet);
 //        }
@@ -249,15 +262,13 @@ public class MountainController {
 
                 List<Point3d> missingPoints = getMissingPointsFromExisting(pointsCurrent, transMinX, transMaxX, transMinY, transMaxY); //todo mogoče namesto new ArrayList daš kar direkt Set in nato popraviš ostalo ustrezno
 
-//                boolean debug = pointsCurrent.size() == 2271442;
-                boolean debug = false;
                 if (debug) {
                     String outputfileTemp = Main.OUTPUT_FILE_NAME + ".segmentTo" + currentMaxZDepth;
-//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent), Main.INPUT_FILE_NAME, outputfileTemp);
-//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
+                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent), Main.INPUT_FILE_NAME, outputfileTemp);
+                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
                     outputfileTemp += ".missingPoints";
                     JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), Main.INPUT_FILE_NAME, outputfileTemp);
-//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
+                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
 
                     if (pointsCurrent.size() == 2271442) {
                         System.exit(-222);
@@ -285,7 +296,7 @@ public class MountainController {
         rotatedPointsTreeSet = null;
         System.out.println("end calculateNewPoints(), we found " + addedUntransformedPointsList.size() + " new points.");
         System.out.println("-------------------------------------------------------------------------------------.");
-        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(addedUntransformedPointsList), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "untrans");
+        if (debug) JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(addedUntransformedPointsList), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "untrans");
         return addedUntransformedPointsList;
     }
 
@@ -320,27 +331,76 @@ public class MountainController {
         }
 //        HelperClass.printLine(Math.toDegrees(aroundZToXAngle), Math.toDegrees(aroundYtoZAngle));
 
-        //create transformation matrix based on rotation angles
-        //transformation order: translate to origin (0,0,0), rotate by z-axis, rotate by y-axis, then translate back to start
-        Transform3D rotationZ = new Transform3D();
-        Transform3D rotationY = new Transform3D();
-        transformation = new Transform3D();
-        transformationBack = new Transform3D();
+        boolean temp = false;
+        if (temp) {
+            //create transformation matrix based on rotation angles
+            //transformation order: translate to origin (0,0,0), rotate by z-axis, rotate by y-axis, then translate back to start
+            Transform3D rotationZ = new Transform3D();
+            Transform3D rotationY = new Transform3D();
+            transformation = new Transform3D();
+            transformationBack = new Transform3D();
 
-        rotationZ.rotZ(aroundZToXAngle);
-        rotationY.rotY(aroundYtoZAngle);
+            rotationZ.rotZ(aroundZToXAngle);
+            rotationY.rotY(aroundYtoZAngle);
 
-        transformation.mul(translationCenter);
-        transformation.mul(rotationZ);
-        transformation.mul(rotationY);
-        transformation.mul(translationBack);
+            transformation.mul(translationCenter);
+            transformation.mul(rotationZ);
+            transformation.mul(rotationY);
+            transformation.mul(translationBack);
 
-        rotationY.invert();
-        rotationZ.invert();
-        transformationBack.mul(translationCenter);
-        transformationBack.mul(rotationY);
-        transformationBack.mul(rotationZ);
-        transformationBack.mul(translationBack);
+            rotationY.invert();
+            rotationZ.invert();
+            transformationBack.mul(translationCenter);
+            transformationBack.mul(rotationY);
+            transformationBack.mul(rotationZ);
+            transformationBack.mul(translationBack);
+        } else {
+            Transform3D rotation = new Transform3D();
+            transformation = new Transform3D();
+            transformationBack = new Transform3D();
+
+
+            //https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d/2672702#2672702
+            GVector a = new GVector(new double[]{x,y,z});
+            GVector b = new GVector(new double[]{0,0,1}) ; //we want to transform vector a to vector b
+
+            GVector sum = new GVector(3);
+            sum.add(a, b);
+
+            GMatrix upper = new GMatrix(3,3);
+            upper.mul(sum, sum);
+
+            GMatrix lower = new GMatrix(1,1);
+            GMatrix sumMatrix  = new GMatrix(3,1, new double[]{sum.getElement(0), sum.getElement(1), sum.getElement(2)});
+            lower.mulTransposeLeft(sumMatrix, sumMatrix);
+            double lowerDouble = lower.getElement(0,0);
+            double quotient = 2/lowerDouble;
+
+            Matrix3d matrix = new Matrix3d();
+            upper.get(matrix);
+            matrix.mul(quotient);
+
+
+            Matrix3d identity = new Matrix3d();
+            identity.setIdentity();
+            matrix.sub(identity);
+
+            rotation.setRotation(matrix);
+
+
+//            rotationX.rotX(-90);
+
+            transformation.mul(translationCenter);
+            transformation.mul(rotation);
+            transformation.mul(translationBack);
+
+//            transformation.setRotation(new Matrix3d(-1, 0,0, 0,0,-1, 0,-1,0));
+
+            rotation.invert();
+            transformationBack.mul(translationCenter);
+            transformationBack.mul(rotation);
+            transformationBack.mul(translationBack);
+        }
     }
 
     private static boolean similarTransformationExists(double potentialAngle1, double potentialAngle2, List<double[]> angleList, double similarAngleToleranceDegrees) {
@@ -362,7 +422,8 @@ public class MountainController {
     public static Point_dt[] getDmrFromFile(String ascFileName, double[] bounds) {
         System.out.println("method getDmrFromFile()");
         List<Point_dt> list = new ArrayList<>();
-//        int i = 0;
+        int i = 0;
+        int j = 0;
         Coordinate center = new Coordinate(410809.150, 137774.920, 2761.130);
         double radius = 300.0;
 
@@ -375,10 +436,12 @@ public class MountainController {
                 double y = Double.parseDouble(coordinates[1]);
                 double z = Double.parseDouble(coordinates[2]);
 //                if (center.distance3D(new Coordinate(x,y,z)) < radius) {
-                if (bounds != null && bounds[0] < x && x < bounds[1]) {
-                    continue; //if x is not inside bounds we don't write to list
+                if (bounds == null || (bounds[0] <= x && x <= bounds[1])) {
+                    i++;
+                    list.add(new Point_dt(x,y, z)); //if no bounds are given or x is inside bounds we write to list
                 }
-                list.add(new Point_dt(x,y, z));
+
+                j++;
 //                }
 
             }
@@ -387,6 +450,7 @@ public class MountainController {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        HelperClass.printLine(", ", "i: ", i, "j: ", j);
         System.out.println("end method getDmrFromFile(), return list.length=" + list.size());
         return list.toArray(new Point_dt[0]);
 

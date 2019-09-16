@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 //import org.apache.commons.math3.a
 
@@ -11,6 +13,7 @@ import static com.slemenik.lidar.reconstruction.buildings.ShpController.getBound
 
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import com.slemenik.lidar.reconstruction.main.HelperClass;
+import com.slemenik.lidar.reconstruction.main.Main;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -159,14 +162,17 @@ public class EvenFieldController {
             return new ArrayList<>();
         }
         boolean[][] fieldAllPoints = getBooleanPointField(pointList); //boolean field of projection where value==true if point exists
+        //HelperClass.createFieldPointFile(fieldAllPoints, minX, minY, pointsSpace);
+        if (MountainController.debug) HelperClass.createFieldPointFile(fieldAllPoints);
         boolean[][] boundaryField = getBoundaryField(fieldAllPoints); //boolean field, subset of fieldAllPoints, only boundary points are true
 
 //        if (pointList.size() == 2271442) { //temp
-//            HelperClass.createFieldPointFile(boundaryField, minX, minY, pointsSpace);
-            HelperClass.createFieldPointFile(boundaryField);
-//            HelperClass.createFieldPointFile(fieldAllPoints, minX, minY, pointsSpace);
-            HelperClass.createFieldPointFile(fieldAllPoints);
-//            System.exit(-1111);
+//        if (pointList.size() == 2264018) { //temp
+
+        //HelperClass.createFieldPointFile(boundaryField, minX, minY, pointsSpace);
+        if (MountainController.debug) HelperClass.createFieldPointFile(boundaryField);
+            int tempa=5;
+            //System.exit(-1111);
 //        }
 
 
@@ -191,8 +197,10 @@ public class EvenFieldController {
                }
            } //end for j
        } // end for i
+//        if (pointList.size() == 2264018) { //temp
 //        HelperClass.createFieldPointFile(pointsToInsert, minX, minY, pointsSpace);
-        HelperClass.createFieldPointFile(pointsToInsert);
+//            HelperClass.createFieldPointFile(pointsToInsert);
+//        }
         return getPointsFromFieldList(pointsToInsert);
 //        return getPointsFromFieldArray(fieldAllPoints, false);
     }
@@ -225,7 +233,6 @@ public class EvenFieldController {
         int requiredSize = fieldsWithPointList.size();
         while(result.size() < requiredSize) {
             int[] fieldIndex = fieldsWithPointList.get(i);
-            i++;
 
             int indexX = fieldIndex[0];
             int indexY = fieldIndex[1];
@@ -244,6 +251,8 @@ public class EvenFieldController {
                 fieldsWithPointList.add(fieldIndex);
             }else if(newTemp == -2) {
                 requiredSize--;
+//                fieldsWithPointList.remove(i);
+//                i--; //we subtract it and moment later we add it, so we get next point correctly
             } else {
                 if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE}, interpolation )) { //todo explore why
                     thirdDimInfo[indexX][indexY] = newTemp; // sprotno popravljanje oz dopolnjevanje tretje dimenzije
@@ -251,7 +260,10 @@ public class EvenFieldController {
                 result.add(new Point3d (newX, newY, newTemp));//temp, because x = 0, y = x, z = y
             }
 //            System.out.println("result.size() is " + result.size() + ", must be " + requiredSize);
-
+            i++;
+        }
+        if (result.size() == 22656) {
+            int temp = 24;
         }
         return result;
     }
@@ -290,6 +302,11 @@ public class EvenFieldController {
             while (/*i <= K temp &&*/ !find) {
 
                 List<int[]> rn = RN8(p, pPrev, i, field.length, field[0].length);
+                if (rn == null) {
+                    HelperClass.createFieldPointFile(field);
+                    HelperClass.printLine("", "impossible rn == null");
+                }
+//                List<int[]> rn = RN8(p, pPrev, i, field.length, field[0].length);
                 i++; //?
                 for (int[] qArray : rn) {
                     Point2d q = new Point2d(qArray[0], qArray[1]);
@@ -339,7 +356,27 @@ public class EvenFieldController {
         return newField;
     }
 
-
+//    public static boolean [][] growthClockWise(boolean [][] field) { //growth clock wise
+//        int k = 2;//temp
+//        boolean stop = false;
+//        while (!stop) {
+//            //computepPrevk
+//            boolean find = false;
+//            for (int[] q : RNk) {
+//                if (find) {//todo ?
+//                    break;
+//                }
+//                int qX = q[0];
+//                int qY = q[1];
+//                for (int i = 1; i<= k; i++) {
+//                    q
+//                }
+//            } // end foreach RNk
+//            if (pX == firstX && pY == firstY && !firstRound) {
+//                stop = true;
+//            }
+//        } //end while stop
+//    } //end function
 
     private static boolean is4NeighborhoodEmpty(boolean [][] field, int x, int y, boolean outsideBoundsIsEmpty) {
         return outsideBoundsIsEmpty ? (
@@ -394,6 +431,10 @@ public class EvenFieldController {
 
     /*return list of indices {[x,y], [x2,y2],... } that surround point px,py */
     public static List<int[]> RN8(int pX, int pY, int prevX, int prevY, int i, int lengthX, int lengthY) {
+        if (i > lengthX && i > lengthY) {
+            return null;
+        }
+
         List<int[]> result = new ArrayList<>();
         if (prevX == -1 || prevY == -1) {
             prevX = Integer.max(pX - i, 0);
@@ -446,10 +487,17 @@ public class EvenFieldController {
             return null;
         }
 
+        currX = Integer.max(Integer.min(currX, lengthX-1), 0); //firstX must be between 0 and lengthX-1
+        currY = Integer.max(Integer.min(currY, lengthY-1), 0); //firstY must be between 0 and lengthY-1
+
         int firstX = currX;
         int firstY = currY;
 
         while (result.size() < 3 || (firstX != currX || firstY != currY)) { // The  k-ring  neighborhood  of  p  contains  8k points
+
+            if (result.size() > 8 * i) {
+                HelperClass.printLine("", "The  k-ring  neighborhood  of  p  contains  more than 8k points!!");
+            }
 
             if (pX == currX && pY == currY && result.size() > 0) {
                 result.remove(result.size()-1);
@@ -461,6 +509,9 @@ public class EvenFieldController {
                     direction = Direction.DOWN;
                 } else {
                     currX++;
+                    if (currY < 0 || currX < 0) {
+                        HelperClass.printLine("", "wt");
+                    }
                     result.add(new int[]{currX, currY});
                 }
             } else if (direction == Direction.DOWN){
@@ -468,6 +519,9 @@ public class EvenFieldController {
                     direction = Direction.LEFT;
                 } else {
                     currY--;
+                    if (currY < 0 || currX < 0) {
+                        HelperClass.printLine("", "wt");
+                    }
                     result.add(new int[]{currX, currY});
                 }
             }
@@ -476,6 +530,9 @@ public class EvenFieldController {
                     direction = Direction.UP;
                 } else {
                     currX--;
+                    if (currY < 0 || currX < 0) {
+                        HelperClass.printLine("", "wt");
+                    }
                     result.add(new int[]{currX, currY});
                 }
             } else if(direction == Direction.UP) {
@@ -483,6 +540,9 @@ public class EvenFieldController {
                     direction = Direction.RIGHT;
                 } else {
                     currY++;
+                    if (currY < 0 || currX < 0) {
+                        HelperClass.printLine("", "wt");
+                    }
                     result.add(new int[]{currX, currY});
                 }
             }
@@ -490,6 +550,94 @@ public class EvenFieldController {
         return result;
     }
 
+    private static List<int[]> RN8alt(Point2d p, Point2d pPrev, int K, int lengthX, int lengthY) {
+        List<int[]> ringIndicesList = new ArrayList<>();
+
+        if (K > lengthX && K > lengthY) {
+           return null;
+        }
+
+        if (pPrev.x == -1 || pPrev.y == -1) {
+            pPrev.x = Integer.max((int)p.x - K, 0);
+            pPrev.y = Integer.max((int)p.y - K, 0);
+        }
+        //calculate linear function of halfline p->pprev https://keisan.casio.com/exec/system/1223508685
+        double k = (pPrev.y - p.y)/(pPrev.x - p.x);
+        double n = ((pPrev.x * p.y) - (p.x * pPrev.y))/(pPrev.x - p.x);
+        double functionY, functionX;
+        int difference;
+        int lowestDifference = Integer.MAX_VALUE;
+        //set bounds of K ring
+        int minX = Integer.max(0, (int) p.x - K);
+        int maxX = Integer.min(lengthX-1, (int) p.x + K);
+        int minY = Integer.max(0, (int) p.y - K);
+        int maxY = Integer.min(lengthY-1 ,(int) p.y + K);
+
+        //we start with lower left corner
+        int ringX = minX;
+        int ringY = minY;
+
+
+
+        //move from lower left corner to upper left
+        while (ringY < maxY) {
+            if (!(ringX == (int)p.x && ringY == (int) p.y)) { //if current ring coordinate is not current point
+                functionY = (k * ringX) + n;
+                difference = Math.abs(ringY - (int) functionY);
+                lowestDifference = Integer.min(difference, lowestDifference);
+                ringIndicesList.add(new int[]{ringX, ringY, difference});
+            }
+            ringY++;
+        }
+
+        //move from upper left to upper right
+        while (ringX < maxX) {
+            if (!(ringX == (int)p.x && ringY == (int) p.y)) { //if current ring coordinate is not current point
+                functionY = (k * ringX) + n;
+                difference = Math.abs(ringY - (int) functionY);
+                lowestDifference = Integer.min(difference, lowestDifference);
+                ringIndicesList.add(new int[]{ringX, ringY, difference});
+            }
+            ringX++;
+        }
+
+        //move from upper right to lower right
+        while (ringY > minY) {
+            if (!(ringX == (int)p.x && ringY == (int) p.y)) { //if current ring coordinate is not current point
+                functionY = (k * ringX) + n;
+                difference = Math.abs(ringY - (int) functionY);
+                lowestDifference = Integer.min(difference, lowestDifference);
+                ringIndicesList.add(new int[]{ringX, ringY, difference});
+            }
+            ringY--;
+        }
+
+        //move from lower right to lower left (starting point)
+        while (ringX > minX) {
+            if (!(ringX == (int)p.x && ringY == (int) p.y)) { //if current ring coordinate is not current point
+                functionY = (k * ringX) + n;
+                difference = Math.abs(ringY - (int) functionY);
+                lowestDifference = Integer.min(difference, lowestDifference);
+                ringIndicesList.add(new int[]{ringX, ringY, difference});
+            }
+            ringX--;
+        }
+
+        //we shift the list so it starts ith pPrev
+        int finalLowestDifference = lowestDifference;
+        int indexOfPointOnHalfLine = IntStream.range(0, ringIndicesList.size()).filter(i -> {
+            int[] ringIndex = ringIndicesList.get(i);
+            return ringIndex[2] == finalLowestDifference //it lies on halfline p->pPrev
+                    && (ringIndex[0] < p.x && pPrev.x < p.x || ringIndex[0] > p.x && pPrev.x > p.x ) //both ring X and pPrev X are on the same side of p.X (in direction from p to pPrev)
+                    && (ringIndex[1] < p.y && pPrev.y < p.y || ringIndex[1] > p.y && pPrev.y > p.y ); //both ring Y and pPrev Y are on the same side of p.Y  (in direction from p to pPrev)
+        }).findFirst().orElse(0);
+
+        return Stream.concat(
+                ringIndicesList.subList(indexOfPointOnHalfLine, ringIndicesList.size()).stream(),
+                ringIndicesList.subList(0, indexOfPointOnHalfLine).stream()
+        ).collect(Collectors.toList());
+
+    }
 
 
 }

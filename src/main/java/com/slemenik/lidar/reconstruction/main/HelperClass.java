@@ -1,10 +1,12 @@
 package com.slemenik.lidar.reconstruction.main;
 
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
+import delaunay_triangulation.Point_dt;
 
 import javax.vecmath.Point3d;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -45,7 +47,7 @@ public class HelperClass {
     }
 
     public static double[][] toResultDoubleArray(TreeSet treeSet, double classification) {
-        if (treeSet.isEmpty()){
+        if (treeSet == null || treeSet.isEmpty()){
             return new double[][]{};
         } else {
             return ((SortedSet<Point3d>)treeSet).stream().map(point -> new double[]{point.x, point.y, point.z /*0/*temp*/, classification}).toArray(double[][]::new);//todo paralel streams?
@@ -53,7 +55,7 @@ public class HelperClass {
     }
 
     public static double[][] toResultDoubleArray(List list,  double classification){
-        if (list.isEmpty()){
+        if (list == null || list.isEmpty()){
             return new double[][]{};
         } else if (list.get(0) instanceof double[]) {
             return (double[][]) list.toArray(new double[][]{});
@@ -67,8 +69,12 @@ public class HelperClass {
 
     }
 
+    public static double[][] toResultDoubleArray (Point_dt[] arr) {
+        return Arrays.asList(arr).stream().map(x -> new double[]{x.x(), x.y(), x.z()}).toArray(double[][]::new);
+    }
+
     public static void printLine(String splitter, Object... params){
-        System.out.print("[" + LocalTime.now() + "] ");
+        System.out.print("[" + LocalTime.now().withNano(0) + "] ");
         for (int i = 0; i<params.length; i++) {
             System.out.print(params[i]);
             if (i != params.length-1) {
@@ -91,6 +97,7 @@ public class HelperClass {
         JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTestTransformedCoo");
     }
 
+    /*creates points from field, z = 0, x and y are coordinates starting from 0 to field.length*/
     public static void createFieldPointFile(boolean[][] field) {
         List<double[]> points = new ArrayList<>();
         for (int i = 0; i< field.length;i++) {
@@ -113,6 +120,7 @@ public class HelperClass {
         JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTestTransformedCoo");
     }
 
+    /*creates points from field, z = 0, x and y are actual coordinates of corespondant field*/
     public static void createFieldPointFile(boolean[][] field, double minX, double minY, double pointsSpace) {
         List<double[]> points = new ArrayList<>();
         for (int i = 0; i< field.length;i++) {
@@ -146,9 +154,9 @@ public class HelperClass {
         long heapFreeSize = Runtime.getRuntime().freeMemory();
 
         long used = heapSize - heapFreeSize;
-        System.out.println("totalMemory "+HelperClass.formatHeapSize(heapSize));
-        System.out.println("heapFreeSize "+HelperClass.formatHeapSize(heapFreeSize));
-        System.out.println("used "+HelperClass.formatHeapSize(used));
+        printLine("", "totalMemory "+HelperClass.formatHeapSize(heapSize));
+        printLine("","heapFreeSize "+HelperClass.formatHeapSize(heapFreeSize));
+        printLine("","used "+HelperClass.formatHeapSize(used));
 
     }
 
