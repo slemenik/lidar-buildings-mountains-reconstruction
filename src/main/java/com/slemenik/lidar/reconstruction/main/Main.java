@@ -4,7 +4,11 @@ import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.buildings.ShpController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
@@ -15,6 +19,7 @@ import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
+import org.apache.commons.lang3.ArrayUtils;
 
 
 import javax.vecmath.Point3d;
@@ -49,14 +54,15 @@ public class Main {
     public static  int COLOR = 5; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3-temno zelena;
     private static int[] READ_CLASSIFICATION = new int[]{0,1,2,3,4,5,6,7};
     /*
-    0 - ustvarjana, vendar nikoli klasificirane točke
-    1- neklasificirane točke
-    2- tla(ang. ground)
-    3- nizka vegetacija, do 1 m
-    4- srednja vegetacija, 1 m do 3 m
-    5 - visoka vegetacija, nad 3 m
-    6 - zgradbe
+    0 - ustvarjana, vendar nikoli klasificirane točke//črna
+    1- neklasificirane točke //bela
+    2- tla(ang. ground) //temno rjava
+    3- nizka vegetacija, do 1 m // temno zelena
+    4- srednja vegetacija, 1 m do 3 m //svetlo zelena
+    5 - visoka vegetacija, nad 3 m //rumena
+    6 - zgradbe //rdeča
     7- nizka točka (šum)
+    9 - modra, voda (ni v lidar)
     */
     public static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 30;
 
@@ -133,16 +139,79 @@ public class Main {
                 HelperClass.memory();
                 MountainController mc = new MountainController(headerDTO, oldPoints);
                 double[][] newMountainsPoints = HelperClass.toResultDoubleArray(mc.getNewPoints(), 65);
-                //JniLibraryHelpers.writePointListWithClassification(newMountainsPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-mountain"); //temp
+                JniLibraryHelpers.writePointListWithClassification(newMountainsPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-mountain"); //temp
             }
 
-//            newPoints = ArrayUtils.addAll(newBuildingPoints, newMountainsPoints);
+            //newPoints = ArrayUtils.addAll(newBuildingPoints, newMountainsPoints);
 
             currMinX += segmentLength;
         }
         JniLibraryHelpers.writePointListWithClassification(newPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-united");
         HelperClass.printLine("", "End pipeline.");
     }
+
+    private static void examplePoint2Index() {
+
+        String input = DATA_FOLDER + "gore presek/triglav okrnjen - Copy";
+        String[] params = getJNIparams(410000, 411000);
+        double[][] oldPoints = JniLibraryHelpers.getPointArray(input, params);
+//            double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, currMinX, headerDTO.maxX);
+        //JniLibraryHelpers.writePointListWithClassification(oldPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME+"-old");
+        double[] header = JniLibraryHelpers.getHeaderInfo(input);
+        DTO.LasHeader headerDTO = new DTO.LasHeader(header);
+        MountainController mc = new MountainController(headerDTO, oldPoints);
+        mc.calculateRotationTransformation(0, -1, 0);
+
+
+        double transMinX = Double.MAX_VALUE;
+        double transMaxX = 0;
+        double transMinY = Double.MAX_VALUE;
+        double transMaxY = 0;
+        double transMinZ = Double.MAX_VALUE;
+        double transMaxZ = 0;
+        SortedSet<Point3d> pointList = new TreeSet<>((p1, p2) -> {
+            int compareX = Double.compare(p1.x, p2.x);
+            int compareY = Double.compare(p1.y, p2.y);
+            // int compareZ = Double.compare(p1.z, p2.z); //lowset to highest
+            int compareZ = Double.compare(p2.z, p1.z); //highest to lowest
+            if (compareX == 0 && compareY == 0 && compareZ == 0 ) {
+                return 0; //if point is exactly the same, return 0 so there are no duplicates
+            } else {
+                if (Double.compare(p2.z, p1.z) == 0){ //temp
+                    int tempa = 35;
+                }
+                int temp = compareZ != 0 ? compareZ : ( compareX != 0 ? compareX : compareY );
+                if (temp == 0){
+                    int tempb = 24;
+                }
+                //in case of not being duplicates, order them by Z
+                //or if Z is same order by X or if same order by Y
+                return compareZ != 0 ? compareZ : ( compareX != 0 ? compareX : compareY );
+            }
+        });
+        Point3d originalPoint;
+        for (double[] point : mc.originalPointArray) {
+            originalPoint = new Point3d(point[0], point[1], point[2]);
+            Point3d newPoint = new Point3d();
+            mc.transformation.transform(originalPoint, newPoint);
+            newPoint.z = 0;
+            pointList.add(newPoint);
+
+            if (transMinX > newPoint.x) transMinX = newPoint.x;
+            if (transMaxX < newPoint.x) transMaxX = newPoint.x;
+
+            if (transMinY > newPoint.y) transMinY = newPoint.y;
+            if (transMaxY < newPoint.y) transMaxY = newPoint.y;
+        }
+
+        EvenFieldController efc = new EvenFieldController( transMinX, transMaxX, transMinY, transMaxY, Main.CREATED_POINTS_SPACING);
+        boolean[][] fieldAllPoints = efc.getBooleanPointField(pointList);
+        HelperClass.createFieldPointFile(fieldAllPoints, transMinX, transMinY, CREATED_POINTS_SPACING);
+        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointList), input, OUTPUT_FILE_NAME + "orig");
+
+    }
+
+
 
     public static String[] getJNIparams(double minX, double maxX) {
         String[] result = new String[READ_CLASSIFICATION.length + 5];
@@ -217,8 +286,27 @@ public class Main {
 //        JniLibraryHelpers.writePointListWithClassification(t, INPUT_FILE_NAME, OUTPUT_FILE_NAME + 8);
 
         pipelineStart();
+//        examplePoint2Index();
+//        test123();
+    return;
 
-        return;
+
+    }
+
+    private static void test123() {
+        String input = DATA_FOLDER + "primeri za nalogo/notranjost3";
+        double[][] arr = JniLibraryHelpers.getPointArray(input);
+        double[] lasHeaderParams =JniLibraryHelpers.getHeaderInfo(input);
+        DTO.LasHeader header = new DTO.LasHeader(lasHeaderParams);
+        boolean[][] newArr = EvenFieldController.initField(header.minX, header.maxX, header.minY, header.maxY, 0.6);
+
+        for (int i = 0; i < newArr.length; i++) {
+            Arrays.fill(newArr[i], true);
+        }
+        HelperClass.createFieldPointFile(newArr, header.minX, header.minY, 0.6);
+        int a = 5;
+
+
 
 
     }
@@ -298,6 +386,7 @@ public class Main {
         return newPoints;
     }
 
+    //spodnja funckija getPointsFromFieldArray je napačna, prej popravi če hočeš tole klicat
     public static List<double[]> testMountainGrid3d(){
         //naredi triglav, 3d, ne naredi praznih mest, ampak tista ki so že nafilana, ampak so x,y koordinate diskretne, mreža
         double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
@@ -311,7 +400,7 @@ public class Main {
         double[][] arr = JniLibraryHelpers.getPointArray( INPUT_FILE_NAME);
         return testBoundary(arr);
     }
-
+    //spodnja funckija getPointsFromFieldArray je napačna, prej popravi če hočeš tole klicat
     public static List<double[]> testBoundary(double[][] arr) {
 
         EvenFieldController mc = new EvenFieldController(arr, CREATED_POINTS_SPACING);

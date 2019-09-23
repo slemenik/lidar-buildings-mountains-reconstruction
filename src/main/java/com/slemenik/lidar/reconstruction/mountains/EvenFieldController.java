@@ -36,8 +36,6 @@ public class EvenFieldController {
         this.pointsSpace = pointsSpace;
     }
 
-    public EvenFieldController(){}
-
     public EvenFieldController(double minX, double maxX, double minY, double maxY, double pointsSpace) {
         this.minX = minX;
         this.maxX = maxX;

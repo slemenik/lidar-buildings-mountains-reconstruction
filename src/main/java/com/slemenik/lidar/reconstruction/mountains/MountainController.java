@@ -105,9 +105,9 @@ public class MountainController {
         });
 //         JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "standard"+tempCount);
 
-        if (true){
-            return null;
-        }
+//        if (true){
+//            return null;
+//        }
 
         System.out.println("Points from default angles added. Now we add points based on DMR.");
         Point_dt[] dmrPointList = getDmrFromFile(dmrFileName, boundsX);
@@ -120,7 +120,7 @@ public class MountainController {
         dmrPointList = null; //garbage collector optimization
         dt.trianglesIterator().forEachRemaining(triangleDt -> {
             if (!triangleDt.isHalfplane()) {
-                HelperClass.memory();
+//                HelperClass.memory();
                 Vector3D normal = getNormalVector(triangleDt.p1(), triangleDt.p2(), triangleDt.p3());
                 points2write.addAll(getPoints2WriteFromNormalAngle(normal));
                 //System.out.println(i[0]++);
@@ -326,13 +326,17 @@ public class MountainController {
         //check if similiar transformation was alredy done
         if (similarTransformationExists(aroundZToXAngle, aroundYtoZAngle, pastTransformationsAngles, similarAngleToleranceDegrees)) {
             transformation = null;
+            return;
         } else {
             pastTransformationsAngles.add(new double[]{aroundZToXAngle, aroundYtoZAngle});
         }
 //        HelperClass.printLine(Math.toDegrees(aroundZToXAngle), Math.toDegrees(aroundYtoZAngle));
 
+
         boolean temp = false;
         if (temp) {
+
+
             //create transformation matrix based on rotation angles
             //transformation order: translate to origin (0,0,0), rotate by z-axis, rotate by y-axis, then translate back to start
             Transform3D rotationZ = new Transform3D();
@@ -355,6 +359,7 @@ public class MountainController {
             transformationBack.mul(rotationZ);
             transformationBack.mul(translationBack);
         } else {
+
             Transform3D rotation = new Transform3D();
             transformation = new Transform3D();
             transformationBack = new Transform3D();
@@ -512,7 +517,7 @@ public class MountainController {
         }
 
 //        System.out.println("normal vector: " + normal.getX() + ", " + normal.getY() + ", " + normal.getZ());
-        return normal;
+        return normal.normalize();
 //        return getNormalAngle(normal.getX(),normal.getY(), normal.getZ());
 //        return rotate(new Vector3d(normal.getX(),normal.getY(), normal.getZ()));
 //        System.out.println("end getNormalVector()");
