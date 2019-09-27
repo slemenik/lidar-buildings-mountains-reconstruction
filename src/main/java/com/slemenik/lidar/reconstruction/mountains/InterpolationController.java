@@ -1,5 +1,6 @@
 package com.slemenik.lidar.reconstruction.mountains;
 
+import com.slemenik.lidar.reconstruction.main.HelperClass;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
@@ -38,19 +39,19 @@ public class InterpolationController {
     private static double getAverage4NThirdDim(double [][] thirdDimInfo, int indexX, int indexY) {
         double averageSum = 0;
         int count = 0;
-        if (thirdDimInfo[indexX+1][indexY] != 0) {
+        if (indexX+1 < thirdDimInfo.length && thirdDimInfo[indexX+1][indexY] != 0) {
             averageSum += thirdDimInfo[indexX+1][indexY];
             count++;
         }
-        if (thirdDimInfo[indexX-1][indexY] != 0) {
+        if (indexX-1 >= 0 && thirdDimInfo[indexX-1][indexY] != 0) {
             averageSum += thirdDimInfo[indexX-1][indexY];
             count++;
         }
-        if (thirdDimInfo[indexX][indexY+1] != 0) {
+        if (indexY+1 < thirdDimInfo[0].length && thirdDimInfo[indexX][indexY+1] != 0) {
             averageSum += thirdDimInfo[indexX][indexY+1];
             count++;
         }
-        if (thirdDimInfo[indexX][indexY-1] != 0) {
+        if (indexY-1 >= 0 && thirdDimInfo[indexX][indexY-1] != 0) {
             averageSum += thirdDimInfo[indexX][indexY-1];
             count++;
         }
@@ -61,11 +62,21 @@ public class InterpolationController {
         return getNearestThirdDim(thirdDimInfo,  indexX,  indexY,  false);
     }
 
+//    private static double getNearestThirdDim(double [][] thirdDimInfo, int indexX, int indexY) {
+//        return getNearestThirdDim(thirdDimInfo,  indexX,  indexY,  false);
+//    }
+
     private static double getNearestThirdDim(double [][] thirdDimInfo, int indexX, int indexY, boolean randomNeighbour) {
+        return getNearestThirdDim(thirdDimInfo,  indexX, indexY, randomNeighbour, 1);
+    }
+
+    private static double getNearestThirdDim(double [][] thirdDimInfo, int indexX, int indexY, boolean randomNeighbour, int increment) {
 
         List<Double> list = new ArrayList<>();
-        for (int i = indexX-1; i<= indexX+1; i++) {
-            for (int j = indexY-1; j<=indexY+1; j++) {
+        for (int i = Integer.max(0, indexX-increment); i<= Integer.min(thirdDimInfo.length-1, indexX+increment); i++) {
+            for (int j = Integer.max(0, indexY-increment); j<= Integer.min(thirdDimInfo[i].length-1, indexY+increment); j++) {
+//                i = HelperClass.getValueInsideBounds(i, thirdDimInfo.length);
+//                j = HelperClass.getValueInsideBounds(j, thirdDimInfo[0].length);
                 if (!(i == indexX && j == indexY) && thirdDimInfo[i][j] != 0) {
                     if (randomNeighbour) {
                         list.add(thirdDimInfo[i][j]);
@@ -88,14 +99,16 @@ public class InterpolationController {
         NEAREST_N_RANDOM,
         AVERAGE_8N,
         AVERAGE_4N,
-        CONSTANT,
-        OWN_VALUE,
+//        CONSTANT,
+//        OWN_VALUE,
         AVERAGE_24N,
         BILINEAR,
         BIQUADRATIC,
         BIQUADRATIC_NEAREST,
         BICUBIC,
-        SPLINE
+        SPLINE,
+        SPLINE_FIX
+//        NEAREST_N_INCREMENT
     }
 
     static double getThirdDim(double[][] thirdDimInfo, int indexX, int indexY, Interpolation interpolation) {
@@ -110,10 +123,10 @@ public class InterpolationController {
                 return getAverageThirdDim(thirdDimInfo, indexX, indexY);
             case AVERAGE_24N:
                 return getAverageThirdDim(thirdDimInfo, indexX, indexY,2 );
-            case CONSTANT:
-                return 1;
-            case OWN_VALUE:
-                return thirdDimInfo[indexX][indexY]; //only when point we point to write alredy existed
+//            case CONSTANT:
+//                return 1;
+//            case OWN_VALUE:
+//                return thirdDimInfo[indexX][indexY]; //only when point we point to write alredy existed
             case BILINEAR:
                 return getBiLinearThirdDim(thirdDimInfo, indexX, indexY);
             case BIQUADRATIC_NEAREST:
@@ -124,11 +137,17 @@ public class InterpolationController {
                 return getBiCubicThirdDim(thirdDimInfo, indexX, indexY);
             case SPLINE:
                 return getSplineThirdDim(thirdDimInfo, indexX, indexY);
+//            case NEAREST_N_INCREMENT:
+//                return getNearestThirdDim(thirdDimInfo, indexX, indexY, false, 1);
+            case SPLINE_FIX:
+                return getBiCubicThirdDim(thirdDimInfo,indexX,indexY,null);
             default:
                 System.out.println("wrong interpolation param");
                 return -1;
         }
     }
+
+
 
     private double getAverage16NThirdDim(double[][] thirdDimInfo, int indexX, int indexY) {
         return 0;
@@ -136,22 +155,29 @@ public class InterpolationController {
 
     private static double getBiLinearThirdDim(double[][] thirdDimInfo, int indexX, int indexY) {
 
-        int rightNeighbourIndex = indexX+1;
-        while (thirdDimInfo[rightNeighbourIndex][indexY] <= 0) {
-            rightNeighbourIndex++;
+        int rightNeighbourIndex, leftNeighbourIndex,  upperNeighbourIndex, bottomNeighbourIndex;
+        try {
+             rightNeighbourIndex = indexX+1;
+            while (thirdDimInfo[rightNeighbourIndex][indexY] <= 0) {
+                rightNeighbourIndex++;
+            }
+             leftNeighbourIndex = indexX-1;
+            while (thirdDimInfo[leftNeighbourIndex][indexY] <= 0) {
+                leftNeighbourIndex--;
+            }//99,143
+             upperNeighbourIndex = indexY+1;
+            while (thirdDimInfo[indexX][upperNeighbourIndex] <= 0) {
+                upperNeighbourIndex++;
+            }
+             bottomNeighbourIndex = indexY-1;
+            while (thirdDimInfo[indexX][bottomNeighbourIndex] <= 0) {
+                bottomNeighbourIndex--;
+            }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            //we do not even have a single neighbour, meaning current point is outside border, so we ignore point
+            return -2;
         }
-        int leftNeighbourIndex = indexX-1;
-        while (thirdDimInfo[leftNeighbourIndex][indexY] <= 0) {
-            leftNeighbourIndex--;
-        }
-        int upperNeighbourIndex = indexY+1;
-        while (thirdDimInfo[indexX][upperNeighbourIndex] <= 0) {
-            upperNeighbourIndex++;
-        }
-        int bottomNeighbourIndex = indexY-1;
-        while (thirdDimInfo[indexX][bottomNeighbourIndex] <= 0) {
-            bottomNeighbourIndex--;
-        }
+
 
         LinearInterpolator li = new LinearInterpolator();
         PolynomialSplineFunction functionX = li.interpolate(new double[]{leftNeighbourIndex, rightNeighbourIndex}, new double[]{thirdDimInfo[leftNeighbourIndex][indexY], thirdDimInfo[rightNeighbourIndex][indexY]});
@@ -222,7 +248,7 @@ public class InterpolationController {
         }
         if (indexXList.size() < 3) {
 //            System.out.println("impossible indexXList.size() < 3");
-            return -1;
+            return -2;
         } else if (indexXList.size() == 4) {
             if (indexX - indexXList.get(1) < indexXList.get(3) - indexX) {//todo if list is sorted, set to .get(0) insted of .get(1)
                 //left furthest index is closer to point, than right furthest
@@ -272,8 +298,8 @@ public class InterpolationController {
 
         }
         if (indexYList.size() < 3) {
-            System.out.println("impossible indexYList.size() < 3");
-            return -1;
+//            System.out.println("impossible indexYList.size() < 3");
+            return -2;
         } else if (indexYList.size() == 4) {
             if (indexY - indexYList.get(1) < indexYList.get(3) - indexY) {//todo if list is sorted, set to .get(0) insted of .get(1)
                 //left furthest index is closer to point, than right furthest
@@ -301,7 +327,7 @@ public class InterpolationController {
         return getBiCubicThirdDim( thirdDimInfo, indexX, indexY, false);
     }
 
-    private static double getBiCubicThirdDim(double[][] thirdDimInfo, int indexX, int indexY, boolean spline) {
+    private static double getBiCubicThirdDim(double[][] thirdDimInfo, int indexX, int indexY, Boolean spline) {
 
         int x = indexX-1;
         int added = 0;
@@ -462,7 +488,7 @@ public class InterpolationController {
             double[] points,
             Double[] values,
             double mu,
-            boolean catmullRom)
+            Boolean catmullRom)
     {
         double originalValue = mu; //temp todo
         mu = (mu-points[1])/(points[2]-points[1]); //normalize
@@ -481,13 +507,13 @@ public class InterpolationController {
         //http://paulbourke.net/miscellaneous/interpolation/
         mu2 = mu*mu;
 
-        if (catmullRom) {
+        if (catmullRom == null) {
             a0 = -0.5*y0 + 1.5*y1 - 1.5*y2 + 0.5*y3;
             a1 = y0 - 2.5*y1 + 2*y2 - 0.5*y3;
             a2 = -0.5*y0 + 0.5*y2;
             a3 = y1;
 
-
+        } else if (catmullRom) {
             //todo uredi, naredi več različnih interpolacij, več splinpv, ...
             return splineInterpolation2(points, values,originalValue);
 
@@ -496,6 +522,14 @@ public class InterpolationController {
             a1 = y0 - y1 - a0;
             a2 = y2 - y0;
             a3 = y1;
+
+            //spodnje dajo praktično iste rezultate kot zgoraj
+            //https://dsp.stackexchange.com/questions/20368/what-is-the-difference-between-cubic-interpolation-and-cubic-spline-interpolat
+            //a2 v odgovoru na stack je napačen, glej drugi odgovor
+//            a0 = 0.5 * ((y1-y2) + ((1d/3) *(y3-y0)) );
+//            a1 = (0.5*(y0 + y2)) - y1;
+//            a2 = ((-1d/3) * y0) - (0.5*y1) + y2 - ((1/6d) * y3);
+//            a3 = y1;
         }
 
         double a = a0*mu*mu2+a1*mu2+a2*mu+a3;

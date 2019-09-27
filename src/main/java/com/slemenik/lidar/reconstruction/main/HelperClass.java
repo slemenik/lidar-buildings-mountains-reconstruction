@@ -46,23 +46,23 @@ public class HelperClass {
 
     }
 
-    public static double[][] toResultDoubleArray(TreeSet treeSet, double classification) {
+    public static double[][] toResultDoubleArray(TreeSet treeSet, Main.Classification classification) {
         if (treeSet == null || treeSet.isEmpty()){
             return new double[][]{};
         } else {
-            return ((SortedSet<Point3d>)treeSet).stream().map(point -> new double[]{point.x, point.y, point.z /*0/*temp*/, classification}).toArray(double[][]::new);//todo paralel streams?
+            return ((SortedSet<Point3d>)treeSet).stream().map(point -> new double[]{point.x, point.y, point.z /*0/*temp*/, classification.getDoubleValue()}).toArray(double[][]::new);//todo paralel streams?
         }
     }
 
-    public static double[][] toResultDoubleArray(List list,  double classification){
+    public static double[][] toResultDoubleArray(List list,  Main.Classification classification){
         if (list == null || list.isEmpty()){
             return new double[][]{};
         } else if (list.get(0) instanceof double[]) {
             return (double[][]) list.toArray(new double[][]{});
         } else if (list.get(0) instanceof Point3d) {
-            return ((List<Point3d>) list).stream().map(point3d -> new double[]{point3d.x, point3d.y, point3d.z, classification}).toArray(double[][]::new);
+            return ((List<Point3d>) list).stream().map(point3d -> new double[]{point3d.x, point3d.y, point3d.z, classification.getDoubleValue()}).toArray(double[][]::new);
         } else if (list.get(0) instanceof int[]) {
-            return ((List<int[]>) list).stream().map(index -> new double[]{index[0], index[1], 0, classification}).toArray(double[][]::new);
+            return ((List<int[]>) list).stream().map(index -> new double[]{index[0], index[1], 0, classification.getDoubleValue()}).toArray(double[][]::new);
         } else {
             return null;
         }
@@ -108,6 +108,20 @@ public class HelperClass {
             }
         }
         JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTestZeroCoo");
+    }
+
+    /*creates points from field, z = value of field[i][j], x and y are coordinates starting from 0 to field.length*/
+    public static void createFieldPointFile(double[][] field, boolean useZ) {
+        List<double[]> points = new ArrayList<>();
+        for (int i = 0; i< field.length;i++) {
+            for (int j = 0; j< field[i].length;j++) {
+                if (field[i][j] > 0) {
+                    double z = useZ ? field[i][j] : 0;
+                    points.add(new double[]{i,j,z});
+                }
+            }
+        }
+        JniLibraryHelpers.writePointList(toResultDoubleArray(points), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME +"fieldTestHeightIndexCoo");
     }
 
     public static void createFieldPointFile(List<int[]> indexList, double minX, double minY, double pointsSpace) {
@@ -157,6 +171,11 @@ public class HelperClass {
         printLine("", "totalMemory "+HelperClass.formatHeapSize(heapSize));
         printLine("","heapFreeSize "+HelperClass.formatHeapSize(heapFreeSize));
         printLine("","used "+HelperClass.formatHeapSize(used));
+
+    }
+
+    public static int getValueInsideBounds(int value, int arrayLength) {
+        return Integer.max(Integer.min(value, arrayLength-1), 0); //value must be between 0 and arrayLength-1
 
     }
 

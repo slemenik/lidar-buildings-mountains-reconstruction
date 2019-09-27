@@ -4,7 +4,6 @@ import com.slemenik.lidar.reconstruction.buildings.ColorController;
 import com.slemenik.lidar.reconstruction.buildings.ShpController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.SortedSet;
@@ -19,7 +18,6 @@ import com.slemenik.lidar.reconstruction.mountains.MountainController;
 import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
 import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
-import org.apache.commons.lang3.ArrayUtils;
 
 
 import javax.vecmath.Point3d;
@@ -32,7 +30,7 @@ public class Main {
     private static boolean CALCULATE_BUILDINGS = false;
     private static boolean CALCULATE_MOUNTAINS = true;
 
-    public static final String INPUT_FILE_NAME = DATA_FOLDER + "merged_temp";//"GK_431_136_bled_grad";//"GK_410_137_triglav";//"GK_458_109";//"410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
+    public static final String INPUT_FILE_NAME = DATA_FOLDER + "GK_410_137_triglav_okrnjen";//"GK_431_136_bled_grad";//"GK_410_137_triglav_okrnjen";//"GK_458_109";//"410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
     public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out";
     public static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
     public static final String DMR_FILE_NAME = INPUT_FILE_NAME.substring(0, DATA_FOLDER.length() + 10) + ".asc";//DATA_FOLDER + "GK1_458_109.asc";//"GK1_410_137.asc";
@@ -51,20 +49,32 @@ public class Main {
     public static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     public static final boolean CREATE_TEMP_FILE = true;
     //public static final double[] TEMP_BOUNDS = new double[]{462264, 100575, 462411, 100701};
-    public static  int COLOR = 5; //6rdeča //5rumena*/; //4-zelena*/;//2-rjava;//3-temno zelena;
-    private static int[] READ_CLASSIFICATION = new int[]{0,1,2,3,4,5,6,7};
-    /*
-    0 - ustvarjana, vendar nikoli klasificirane točke//črna
-    1- neklasificirane točke //bela
-    2- tla(ang. ground) //temno rjava
-    3- nizka vegetacija, do 1 m // temno zelena
-    4- srednja vegetacija, 1 m do 3 m //svetlo zelena
-    5 - visoka vegetacija, nad 3 m //rumena
-    6 - zgradbe //rdeča
-    7- nizka točka (šum)
-    9 - modra, voda (ni v lidar)
-    */
+    private static Classification[] READ_CLASSIFICATION = Arrays.asList(Classification.values()).subList(0,8).toArray(Classification[]::new);
+    public enum Classification {
+        NEVER_CLASSIFIED,   //0 - ustvarjana, vendar nikoli klasificirane točke//črna
+        UNASSIGNED,         //1- neklasificirane točke //bela
+        GROUND,             //2- tla(ang. ground) //temno rjava
+        VEGETATION_LOW,     //3- nizka vegetacija, do 1 m // temno zelena
+        VEGETATION_MEDIUM,  //4- srednja vegetacija, 1 m do 3 m //svetlo zelena
+        VEGETATION_HIGH,    //5 - visoka vegetacija, nad 3 m //rumena
+        BUILDING,           //6 - zgradbe //rdeča
+        LOW_POINT,          //7- nizka točka (šum)
+        NONE,               //8 - reserved (ni v ARSO)
+        WATER               //9 - modra, voda (ni v ARSO)
+        ;
+        public int getIntValue() {
+            return this.ordinal();
+        }
+
+        public double getDoubleValue() {
+            return this.ordinal();
+        }
+    }
+
     public static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 30;
+    public static final double MOUNTAINS_NUMBER_OF_SEGMENTS = 3;
+
+    public static Interpolation INTERPOLATION = Interpolation.AVERAGE_8N;
 
     public static void main(String[] args) {
         long startTime = System.nanoTime();
@@ -80,14 +90,13 @@ public class Main {
         if (pointListDoubleArray.length > 0) {
             System.out.println("zacetek pisanja... ");
             System.out.println("Points to write: " + pointListDoubleArray.length);
-            int returnValue = JniLibraryHelpers.writePointList(pointListDoubleArray, INPUT_FILE_NAME, OUTPUT_FILE_NAME, COLOR);
+            int returnValue = JniLibraryHelpers.writePointList(pointListDoubleArray, INPUT_FILE_NAME, OUTPUT_FILE_NAME);
             System.out.println("End writing. Points written: " + returnValue);
 
             ////////temp////////////7
 //            if (args.length > 0) {
                 int a = args.length+1;
                 System.out.println("jovo na novo");
-                COLOR = a;
                 main(new String[a]);
 
 
@@ -126,7 +135,7 @@ public class Main {
 
             if (CALCULATE_BUILDINGS) {
                 BuildingController bc = new BuildingController(headerDTO);
-                double[][] newBuildingPoints = HelperClass.toResultDoubleArray(bc.getNewPoints(), 64);
+                double[][] newBuildingPoints = HelperClass.toResultDoubleArray(bc.getNewPoints(), Classification.BUILDING);
                 JniLibraryHelpers.writePointListWithClassification(newBuildingPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME+ "-building"); //temp
             }
 
@@ -138,7 +147,7 @@ public class Main {
 
                 HelperClass.memory();
                 MountainController mc = new MountainController(headerDTO, oldPoints);
-                double[][] newMountainsPoints = HelperClass.toResultDoubleArray(mc.getNewPoints(), 65);
+                double[][] newMountainsPoints = HelperClass.toResultDoubleArray(mc.getNewPoints(), Classification.GROUND);
                 JniLibraryHelpers.writePointListWithClassification(newMountainsPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-mountain"); //temp
             }
 
@@ -221,7 +230,7 @@ public class Main {
         result[3] = String.valueOf(maxX);
         result[4] = "-keep_class";
         for (int i = 5; i < result.length; i++) {
-            result[i] = String.valueOf(READ_CLASSIFICATION[i-5]);
+            result[i] = String.valueOf(READ_CLASSIFICATION[i-5].getIntValue());
         }
         return result;
     }
@@ -285,7 +294,14 @@ public class Main {
 //        double[][] t = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, params);
 //        JniLibraryHelpers.writePointListWithClassification(t, INPUT_FILE_NAME, OUTPUT_FILE_NAME + 8);
 
-        pipelineStart();
+        int i = 1;
+//        for (Interpolation interpolation: Interpolation.values()) {
+//            if (i++ <= 4) continue; //napiši kolik ohočše da se jih spusti
+            INTERPOLATION = Interpolation.BICUBIC;
+            OUTPUT_FILE_NAME = DATA_FOLDER + "out-" + INTERPOLATION;
+            pipelineStart();
+//        }
+
 //        examplePoint2Index();
 //        test123();
     return;
@@ -392,7 +408,7 @@ public class Main {
         double[][]  arr = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME);
         OUTPUT_FILE_NAME = DATA_FOLDER + "triglav grid diskretno.laz";
         EvenFieldController ef = new EvenFieldController(arr, CREATED_POINTS_SPACING);
-        ef.interpolation = Interpolation.OWN_VALUE;
+        //popravi tole Main.INTERPOLATION = Interpolation.OWN_VALUE;
         return ef.getPointsFromFieldArray(ef.getBooleanPointField(arr), true);
     }
 

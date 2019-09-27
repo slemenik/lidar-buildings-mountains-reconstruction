@@ -37,22 +37,11 @@ public class JniLibraryHelpers {
         HelperClass.printLine("", s);
     }
 
-    public static Integer writePointList(String inputFileName, String outputFileName) {
-        double[][] list =  {
-                {1.0,11.0,111.0},
-                {2.0,22.0,222.0},
-                {3.0,33.0,333.0},
-                {4.0,44.0,444.0},
-                {5.0,55.0,555.0}
-        };
-        return writePointList(list, inputFileName, outputFileName, 7);
-    }
-
     public static Integer writePointList(double[][] list, String inputFileName, String outputFileName) {
         return writePointList(list, inputFileName,  outputFileName + "-" + colorTemp, colorTemp++);
     }
 
-    public static Integer writePointList(double[][] list, String inputFileName, String outputFileName, int intColor) {
+    public static Integer writePointList(double[][] list, String inputFileName, String outputFileName, int classificationInt) {
         if (list.length == 0) {
             System.out.println("empty list, nothing to write.");
             return -1;
@@ -64,7 +53,7 @@ public class JniLibraryHelpers {
 //        for (int i = 0; i<list.length;i++) {
 //            System.out.println(new Coordinate(list[i][0],  list[i][1], list[i][2]));
 //        }
-        return myInstance.writeJNIPointList(list,inputFileName + ".laz", outputFileName +".laz", intColor);
+        return myInstance.writeJNIPointList(list,inputFileName + ".laz", outputFileName +".laz", classificationInt);
     }
 
     public static double[] getMinMaxHeight(double x, double y, double threshold, String inputFileName) {

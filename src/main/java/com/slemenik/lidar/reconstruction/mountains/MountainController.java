@@ -38,7 +38,6 @@ public class MountainController {
     public String dmrFileName;
     public String outputName;
     public double similarAngleToleranceDegrees;
-    public static double numberOfSegments = 15;
     public double[][] originalPointArray;
     private double[] boundsX;
 
@@ -103,6 +102,7 @@ public class MountainController {
         getDefaultAngles().stream().forEach(normal -> {
             points2write.addAll(getPoints2WriteFromNormalAngle(normal));
         });
+//        getPoints2WriteFromNormalAngle(new Vector3D(-1,0,0));
 //         JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "standard"+tempCount);
 
 //        if (true){
@@ -171,7 +171,7 @@ public class MountainController {
             newPoints = null;//garbage collector optimization?
 //            if (tempCount2 % 10 == 0) {
                 System.out.println("So far we have "+points2write.size()+" new points from " + (tempCount2+1)+" different angles");
-                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "-FinResultKota-"+tempCount2);
+                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "-"+Main.INTERPOLATION +"-FinResultKota-"+normal+"-"+tempCount2);
 //            }
             tempCount2++;
         }
@@ -245,7 +245,7 @@ public class MountainController {
 //            return new Point3d(dd2.x, dd2.y, 0);
 //         }).collect(Collectors.toList())), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+".flat");
 
-        double fragmentSize = (transMaxZ- transMinZ)/numberOfSegments;
+        double fragmentSize = (transMaxZ- transMinZ)/Main.MOUNTAINS_NUMBER_OF_SEGMENTS;
 //        double currentMaxZDepth = transMinZ + fragmentSize; // we start in front and move to back until maxDepth
         double currentMaxZDepth = transMaxZ - fragmentSize; // we start at the back (1st point has highest Z, move to front (each next point has smaller z)
         Iterator<Point3d> treeSetIterator = rotatedPointsTreeSet.iterator();
@@ -253,9 +253,11 @@ public class MountainController {
         int tempFileWritten = 0;
         SortedSet<Point3d> pointsCurrent;
         List<Point3d> addedUntransformedPointsList = new ArrayList<>(); //added points that are still in rotated form, before putting them in original coo. system
-
+//        Point3d tempPoint = null;
+//        Point3d tempPoint2 = null;
         while (treeSetIterator.hasNext()) {
             Point3d point = treeSetIterator.next();
+//            tempPoint2 = point;
 //            if (point.z > currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
             if (point.z < currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
                 pointsCurrent = rotatedPointsTreeSet.headSet(point);
@@ -264,11 +266,13 @@ public class MountainController {
 
                 if (debug) {
                     String outputfileTemp = Main.OUTPUT_FILE_NAME + ".segmentTo" + currentMaxZDepth;
+//                    SortedSet<Point3d> temp123 = tempPoint == null ? rotatedPointsTreeSet.headSet(point) : rotatedPointsTreeSet.subSet(tempPoint, point);
+//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(temp123), Main.INPUT_FILE_NAME, outputfileTemp+"123");
                     JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent), Main.INPUT_FILE_NAME, outputfileTemp);
-                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
+//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(pointsCurrent.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
                     outputfileTemp += ".missingPoints";
-                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), Main.INPUT_FILE_NAME, outputfileTemp);
-                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
+//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints), Main.INPUT_FILE_NAME, outputfileTemp);
+//                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(missingPoints.stream().map(dd2 -> new Point3d(dd2.x, dd2.y, 0)).collect(Collectors.toList())), Main.INPUT_FILE_NAME, outputfileTemp + ".flat");
 
                     if (pointsCurrent.size() == 2271442) {
                         System.exit(-222);
@@ -279,19 +283,18 @@ public class MountainController {
 
                 //add new points of current segment to treeSet, treat them as other points
                 HelperClass.printLine(" ", "najdene nove točke: ", missingPoints.size());
-//                HelperClass.printLine(" ","prej je bilo točk: ", rotatedPointsTreeSet.size());
                 rotatedPointsTreeSet.addAll(missingPoints);
-//                HelperClass.printLine(" ","zdej smo jih dodali in jih je: ", rotatedPointsTreeSet.size());
                 treeSetIterator = rotatedPointsTreeSet.iterator(); //reset iterator
                 currentMaxZDepth -= fragmentSize;
+//                tempPoint = point;
 //                currentMaxZDepth += numberOfSegments; //uncomment this, and comment upper if we go from front to back Z coordinate
-//                System.out.println("reset iterator, we read points: " + pointNumCurrent);
                 pointNumCurrent=0;
 //                System.out.println("-----------------------reset iterator----------------------------------");
 
             }
             pointNumCurrent++;
         }
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(rotatedPointsTreeSet.subSet(tempPoint, tempPoint2)), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+"1234");
         rotatedPointsTreeSet.clear();
         rotatedPointsTreeSet = null;
         System.out.println("end calculateNewPoints(), we found " + addedUntransformedPointsList.size() + " new points.");
@@ -302,7 +305,6 @@ public class MountainController {
 
     private List<Point3d> getMissingPointsFromExisting(SortedSet<Point3d> existingPoints, double minX, double maxX, double minY, double maxY) {
         EvenFieldController efc = new EvenFieldController( minX, maxX, minY, maxY, Main.CREATED_POINTS_SPACING);
-        efc.interpolation = InterpolationController.Interpolation.BICUBIC;
         return efc.fillHoles(existingPoints);
     }
 

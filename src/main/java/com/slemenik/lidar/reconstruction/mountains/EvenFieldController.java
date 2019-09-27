@@ -1,7 +1,5 @@
 package com.slemenik.lidar.reconstruction.mountains;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -9,9 +7,6 @@ import java.util.stream.Stream;
 
 //import org.apache.commons.math3.a
 
-import static com.slemenik.lidar.reconstruction.buildings.ShpController.getBoundsFromFilename;
-
-import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.main.Main;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
@@ -24,7 +19,7 @@ public class EvenFieldController {
 
     public double minX, maxX, minY, maxY;
     public double pointsSpace;
-    public InterpolationController.Interpolation interpolation = Interpolation.AVERAGE_8N;
+    //public InterpolationController.Interpolation interpolation = Interpolation.AVERAGE_8N;
 
     public List<double[]> points2Insert = new ArrayList<>();
     public double[][] thirdDimInfo; //todo namesto tega hrani raje tabelo objektov, kjer so vse info, tudi npr katere
@@ -161,14 +156,13 @@ public class EvenFieldController {
         }
         boolean[][] fieldAllPoints = getBooleanPointField(pointList); //boolean field of projection where value==true if point exists
         //HelperClass.createFieldPointFile(fieldAllPoints, minX, minY, pointsSpace);
-        if (MountainController.debug) HelperClass.createFieldPointFile(fieldAllPoints);
+        if (MountainController.debug)
+            HelperClass.createFieldPointFile(fieldAllPoints);
         boolean[][] boundaryField = getBoundaryField(fieldAllPoints); //boolean field, subset of fieldAllPoints, only boundary points are true
 
-//        if (pointList.size() == 2271442) { //temp
-//        if (pointList.size() == 2264018) { //temp
-
         //HelperClass.createFieldPointFile(boundaryField, minX, minY, pointsSpace);
-        if (MountainController.debug) HelperClass.createFieldPointFile(boundaryField);
+        if (MountainController.debug)
+            HelperClass.createFieldPointFile(boundaryField);
             int tempa=5;
             //System.exit(-1111);
 //        }
@@ -211,7 +205,7 @@ public class EvenFieldController {
             for (int y = 0; y<field[0].length; y++) {
                 double newY = index2Point(y, minY, pointsSpace);
                 if (field[x][y] == writeWhenBoolean) {
-                    double newTemp = InterpolationController.getThirdDim(thirdDimInfo, x, y, interpolation);
+                    double newTemp = InterpolationController.getThirdDim(thirdDimInfo, x, y, Main.INTERPOLATION);
                     if (newTemp != -2) {
                         result.add(new double[]{ newTemp, newX, newY});//temp, because x = 0, y = x, z = y
                     }
@@ -242,7 +236,7 @@ public class EvenFieldController {
 //            if (HelperClass.isBetween(newX, 410839.680, 410839.699) && HelperClass.isBetween(newY, 137211.260, 137211.280)) {
 //                int tempa = 5;
 //            }
-            double newTemp = InterpolationController.getThirdDim(thirdDimInfo, indexX, indexY, interpolation);
+            double newTemp = InterpolationController.getThirdDim(thirdDimInfo, indexX, indexY, Main.INTERPOLATION);
 //todo tukaj se pri interpolaciji večkrat kličejo ene in iste točke, popravi, npr ko je indexX skos isti, se potem na podlagi tega iste interpolacije računajo
             if (newTemp == -1) { //no average found, we will calculate later
 //                System.out.println("no average found");
@@ -252,7 +246,7 @@ public class EvenFieldController {
 //                fieldsWithPointList.remove(i);
 //                i--; //we subtract it and moment later we add it, so we get next point correctly
             } else {
-                if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE}, interpolation )) { //todo explore why
+                if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE}, Main.INTERPOLATION)) { //todo explore why
                     thirdDimInfo[indexX][indexY] = newTemp; // sprotno popravljanje oz dopolnjevanje tretje dimenzije
                 }
                 result.add(new Point3d (newX, newY, newTemp));//temp, because x = 0, y = x, z = y
@@ -484,9 +478,8 @@ public class EvenFieldController {
             System.out.println(String.format("prevX %d, prevY %d, px %d, py %d", prevX,  prevY, pX, pY));
             return null;
         }
-
-        currX = Integer.max(Integer.min(currX, lengthX-1), 0); //firstX must be between 0 and lengthX-1
-        currY = Integer.max(Integer.min(currY, lengthY-1), 0); //firstY must be between 0 and lengthY-1
+        currX = HelperClass.getValueInsideBounds(currX, lengthX); //firstX must be between 0 and lengthX-1
+        currY = HelperClass.getValueInsideBounds(currY, lengthY); //firstY must be between 0 and lengthY-1
 
         int firstX = currX;
         int firstY = currY;
