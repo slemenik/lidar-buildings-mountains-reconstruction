@@ -1,6 +1,7 @@
 package com.slemenik.lidar.reconstruction.jni;
 
 import com.slemenik.lidar.reconstruction.main.HelperClass;
+import com.slemenik.lidar.reconstruction.main.Main;
 
 public class JniLibraryHelpers {
 
@@ -12,7 +13,7 @@ public class JniLibraryHelpers {
 
       {
 //        System.loadLibrary("cygLasReadWriteApi");
-        System.load("C:\\Users\\Matej\\source\\repos\\Project2\\x64\\Debug\\Project2.dll");
+        System.load(Main.DLL_FILE_NAME);
 //        System.loadLibrary("Project2");
     }
 

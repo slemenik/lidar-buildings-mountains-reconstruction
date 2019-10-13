@@ -171,7 +171,7 @@ public class MountainController {
             newPoints = null;//garbage collector optimization?
 //            if (tempCount2 % 10 == 0) {
                 System.out.println("So far we have "+points2write.size()+" new points from " + (tempCount2+1)+" different angles");
-                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "-"+Main.INTERPOLATION +"-FinResultKota-"+normal+"-"+tempCount2);
+//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "-"+Main.INTERPOLATION +"-FinResultKota-"+normal+"-"+tempCount2);
 //            }
             tempCount2++;
         }
@@ -259,7 +259,7 @@ public class MountainController {
             Point3d point = treeSetIterator.next();
 //            tempPoint2 = point;
 //            if (point.z > currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
-            if (point.z < currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
+            if (point.z <= currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
                 pointsCurrent = rotatedPointsTreeSet.headSet(point);
 
                 List<Point3d> missingPoints = getMissingPointsFromExisting(pointsCurrent, transMinX, transMaxX, transMinY, transMaxY); //todo mogoče namesto new ArrayList daš kar direkt Set in nato popraviš ostalo ustrezno
@@ -305,6 +305,7 @@ public class MountainController {
 
     private List<Point3d> getMissingPointsFromExisting(SortedSet<Point3d> existingPoints, double minX, double maxX, double minY, double maxY) {
         EvenFieldController efc = new EvenFieldController( minX, maxX, minY, maxY, Main.CREATED_POINTS_SPACING);
+
         return efc.fillHoles(existingPoints);
     }
 

@@ -57,10 +57,11 @@ public class ShpController {
             FeatureSource oldFeatureSource = getFeatureSource(shpFileName);
 //            oldFeatureSourcetemp = oldFeatureSource;
 
-            String typeName = "BU_STAVBE_P";
+
 
             FeatureType schema = oldFeatureSource.getSchema();
-            String name = schema.getGeometryDescriptor().getLocalName();
+            String name = schema.getGeometryDescriptor().getLocalName();//the_geom
+            String typeName = schema.getName().getLocalPart(); //BU_STAVBE_P
 
             System.out.println(name);
             System.out.println();
@@ -68,7 +69,7 @@ public class ShpController {
 
             FilterFactory ff = CommonFactoryFinder.getFilterFactory( null );
 
-            Filter filter = ff.bbox("the_geom", bounds[0], bounds[1], bounds[2], bounds[3], srs);
+            Filter filter = ff.bbox(name, bounds[0], bounds[1], bounds[2], bounds[3], srs);
 
 //
 //            ff.property( "the_geom"), ff.literal( 12 )

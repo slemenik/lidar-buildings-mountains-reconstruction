@@ -19,6 +19,7 @@ public class EvenFieldController {
 
     public double minX, maxX, minY, maxY;
     public double pointsSpace;
+    private Interpolation interpolation;
     //public InterpolationController.Interpolation interpolation = Interpolation.AVERAGE_8N;
 
     public List<double[]> points2Insert = new ArrayList<>();
@@ -26,10 +27,10 @@ public class EvenFieldController {
                                     //todo vse double točke priapdajo specifičnemu polju, potem nebomo rabili v
                                     //todo getBooleanPointField() povprečiti thirdDimInfo vrednosti
 
-    public EvenFieldController(double[][] arr, double pointsSpace) { //todo remove in the future
-        setBounds(arr);
-        this.pointsSpace = pointsSpace;
-    }
+//    public EvenFieldController(double[][] arr, double pointsSpace) { //todo remove in the future
+////        setBounds(arr);
+////        this.pointsSpace = pointsSpace;
+////    }
 
     public EvenFieldController(double minX, double maxX, double minY, double maxY, double pointsSpace) {
         this.minX = minX;
@@ -37,7 +38,14 @@ public class EvenFieldController {
         this.minY = minY;
         this.maxY = maxY;
         this.pointsSpace = pointsSpace;
-    }
+        try {
+            this.interpolation = Interpolation.valueOf(Main.INTERPOLATION_STRING);
+        } catch (Exception e) {
+            System.out.println("Specified interpolation (" + Main.INTERPOLATION_STRING + ") is not defined. Setting default interpolation to SPLINE");
+            this.interpolation = Interpolation.SPLINE;
+        }
+
+}
 
 
 
@@ -198,23 +206,23 @@ public class EvenFieldController {
     }
 
     //usage: testBoundary() , testMountainGrid3d
-    public List<double[]> getPointsFromFieldArray(boolean[][] field, boolean writeWhenBoolean) {
-        List<double[]> result = new ArrayList<>();
-        for (int x = 0; x<field.length; x++) {
-            double newX = index2Point(x, minX, pointsSpace);
-            for (int y = 0; y<field[0].length; y++) {
-                double newY = index2Point(y, minY, pointsSpace);
-                if (field[x][y] == writeWhenBoolean) {
-                    double newTemp = InterpolationController.getThirdDim(thirdDimInfo, x, y, Main.INTERPOLATION);
-                    if (newTemp != -2) {
-                        result.add(new double[]{ newTemp, newX, newY});//temp, because x = 0, y = x, z = y
-                    }
-                }
-
-            }
-        }
-        return result;
-    }
+//    public List<double[]> getPointsFromFieldArray(boolean[][] field, boolean writeWhenBoolean) {
+//        List<double[]> result = new ArrayList<>();
+//        for (int x = 0; x<field.length; x++) {
+//            double newX = index2Point(x, minX, pointsSpace);
+//            for (int y = 0; y<field[0].length; y++) {
+//                double newY = index2Point(y, minY, pointsSpace);
+//                if (field[x][y] == writeWhenBoolean) {
+//                    double newTemp = InterpolationController.getThirdDim(thirdDimInfo, x, y, Main.INTERPOLATION);
+//                    if (newTemp != -2) {
+//                        result.add(new double[]{ newTemp, newX, newY});//temp, because x = 0, y = x, z = y
+//                    }
+//                }
+//
+//            }
+//        }
+//        return result;
+//    }
 
 
 
@@ -236,7 +244,7 @@ public class EvenFieldController {
 //            if (HelperClass.isBetween(newX, 410839.680, 410839.699) && HelperClass.isBetween(newY, 137211.260, 137211.280)) {
 //                int tempa = 5;
 //            }
-            double newTemp = InterpolationController.getThirdDim(thirdDimInfo, indexX, indexY, Main.INTERPOLATION);
+            double newTemp = InterpolationController.getThirdDim(thirdDimInfo, indexX, indexY, interpolation);
 //todo tukaj se pri interpolaciji večkrat kličejo ene in iste točke, popravi, npr ko je indexX skos isti, se potem na podlagi tega iste interpolacije računajo
             if (newTemp == -1) { //no average found, we will calculate later
 //                System.out.println("no average found");
@@ -246,7 +254,7 @@ public class EvenFieldController {
 //                fieldsWithPointList.remove(i);
 //                i--; //we subtract it and moment later we add it, so we get next point correctly
             } else {
-                if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE}, Main.INTERPOLATION)) { //todo explore why
+                if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE_OLD}, interpolation)) { //todo explore why
                     thirdDimInfo[indexX][indexY] = newTemp; // sprotno popravljanje oz dopolnjevanje tretje dimenzije
                 }
                 result.add(new Point3d (newX, newY, newTemp));//temp, because x = 0, y = x, z = y

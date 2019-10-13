@@ -13,6 +13,7 @@ import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.geometry.BoundingBox;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,23 +57,24 @@ public class BuildingController {
 
     public BuildingController(){}
 
-    public void write() {
-        double bounds[] = ShpController.getBoundsFromFilename(inputLazFileName);
-        write(bounds);
-    }
+//    public void write() {
+//        double bounds[] = ShpController.getBoundsFromFilename(inputLazFileName);
+//        write(bounds);
+//    }
 
     public List<double[]> getNewPoints() {
         HelperClass.printLine(" ", "Function BuildingController.getNewPoints()");
         FeatureIterator iterator = ShpController.getFeatures(bounds, shpFileName);
         List<SimpleFeature> features = new ArrayList<>();
         int index = 0;
+//        try {
         while (iterator.hasNext()) {
 
             Feature feature = iterator.next();
             System.out.print("create temp laz file... ");
             BoundingBox boundingBox = feature.getBounds();
             String CMDparams = String.format(Locale.ROOT,
-                    "las2las.exe -i %s -o %s -keep_xy %f %f %f %f",
+                    Main.LAS_2_LAS_FILE_NAME + " -i %s -o %s -keep_xy %f %f %f %f",
                     inputLazFileName + ".laz", tempLazFileName + ".laz",
                     boundingBox.getMinX()- boundingBoxFactor,
                     boundingBox.getMinY()- boundingBoxFactor,
@@ -82,12 +84,12 @@ public class BuildingController {
             try {
                 Runtime.getRuntime().exec(CMDparams).waitFor();
             } catch (IOException | InterruptedException e) {
-                System.out.println("Error creating temp .laz file: " + e);
+                System.out.println("Error creating temp .laz file: " + e + ". Check if las2las.exe exists in specifed folder: " + new File(Main.LAS_2_LAS_FILE_NAME).getAbsolutePath());
                 System.out.print("Reading from input file...");
                 tempLazFileName = inputLazFileName;
             }
             System.out.println("Done");
-            Property geom = feature.getProperty("the_geom");
+            Property geom = feature.getProperty(feature.getDefaultGeometryProperty().getName());
             System.out.println("Stavba"+index++);
             MultiPolygon buildingPolygon = (MultiPolygon) geom.getValue();
             Coordinate[] buildingVertices = buildingPolygon.getCoordinates();
@@ -108,102 +110,102 @@ public class BuildingController {
         return this.points2Insert;
     }
 
-    public void write(double[] bounds) {
-
-
-        FeatureIterator iterator = ShpController.getFeatures(bounds, shpFileName);
-
-        int index = 0;
-        while (iterator.hasNext() && index < 2) {//temp
-            index++;
-            int j =0;
-//            while (j++ < 8){
-//                iterator.next();
-//            }
-            Feature feature = iterator.next();
-
-            Property geom = feature.getProperty("the_geom");
-
-            //create temp.laz file from bounds of current building -> call las2las.exe
-            if (createTempLazFile) {
-                System.out.print("create temp laz file... ");
-                BoundingBox boundingBox = feature.getBounds();
-                String CMDparams = String.format(Locale.ROOT,
-                        "las2las.exe -i %s -o %s -keep_xy %f %f %f %f",
-                        inputLazFileName, tempLazFileName,
-                        boundingBox.getMinX()- boundingBoxFactor,
-                        boundingBox.getMinY()- boundingBoxFactor,
-                        boundingBox.getMaxX()+ boundingBoxFactor,
-                        boundingBox.getMaxY()+ boundingBoxFactor
-                );
-                try {
-                    Runtime.getRuntime().exec(CMDparams).waitFor();
-                } catch (IOException | InterruptedException e) {
-                    System.out.println("Error creating temp .laz file: " + e);
-                    System.out.print("Reading from input file...");
-                    tempLazFileName = inputLazFileName;
-                }
-                System.out.println("Done");
-            } else {
-                tempLazFileName = inputLazFileName; //if there is no tempfile, we always read from source
-            }
-
-
-//                int result = JniLibraryHelpers.createTempLaz(
-//                        boundingBox.getMinX()-boundingBoxFactor,
-//                        boundingBox.getMinY()-boundingBoxFactor,
-//                        boundingBox.getMaxX()+boundingBoxFactor,
-//                        boundingBox.getMaxY()+boundingBoxFactor
+//    public void write(double[] bounds) {
+//
+//
+//        FeatureIterator iterator = ShpController.getFeatures(bounds, shpFileName);
+//
+//        int index = 0;
+//        while (iterator.hasNext() && index < 2) {//temp
+//            index++;
+//            int j =0;
+////            while (j++ < 8){
+////                iterator.next();
+////            }
+//            Feature feature = iterator.next();
+//
+//            Property geom = feature.getProperty("the_geom");
+//
+//            //create temp.laz file from bounds of current building -> call las2las.exe
+//            if (createTempLazFile) {
+//                System.out.print("create temp laz file... ");
+//                BoundingBox boundingBox = feature.getBounds();
+//                String CMDparams = String.format(Locale.ROOT,
+//                        "las2las.exe -i %s -o %s -keep_xy %f %f %f %f",
+//                        inputLazFileName, tempLazFileName,
+//                        boundingBox.getMinX()- boundingBoxFactor,
+//                        boundingBox.getMinY()- boundingBoxFactor,
+//                        boundingBox.getMaxX()+ boundingBoxFactor,
+//                        boundingBox.getMaxY()+ boundingBoxFactor
 //                );
-
-
-//                GeometryAttribute sourceGeometry = feature.getDefaultGeometryProperty();
-//                System.out.println(feature.getType().getName().toString());
-//                System.out.println(feature.getIdentifier().getID());
-//                System.out.println(feature.getName());
-//                System.out.println(feature.getName());
-//                System.out.println(sourceGeometry.getValue());
-//                System.out.println(feature.getProperty("VISINA"));
-//                for (PropertyDescriptor a : feature.getType().getDescriptors()) {
-//                    System.out.println(a.getName());
-//                    System.out.println(a.getType());
-//                    System.out.println(a.getUserData());
-//                    System.out.println(feature.getName());
-//
+//                try {
+//                    Runtime.getRuntime().exec(CMDparams).waitFor();
+//                } catch (IOException | InterruptedException e) {
+//                    System.out.println("Error creating temp .laz file: " + e);
+//                    System.out.print("Reading from input file...");
+//                    tempLazFileName = inputLazFileName;
 //                }
-//                System.out.println(feature.getType().getName().toString());
-//                System.out.println(feature.getBounds().getMaxY());
+//                System.out.println("Done");
+//            } else {
+//                tempLazFileName = inputLazFileName; //if there is no tempfile, we always read from source
+//            }
 //
-            //System.out.println(feature.getDefaultGeometryProperty().getDescriptor().getCoordinateReferenceSystem());
-            //System.out.println(feature.getDefaultGeometryProperty().getValue());
-//                System.out.println(feature.getDefaultGeometryProperty().getBounds());
-//                System.out.println(feature.getBounds());
-//                System.out.println(feature.getType());
-//                System.out.println(geom.getName());
-//                System.out.println(geom.getType().getDescription());
-//                System.out.println(geom.getUserData());
-//                System.out.println(geom.getDescriptor());
-
-            System.out.println("Stavba"+index);
-            MultiPolygon buildingPolygon = (MultiPolygon) geom.getValue();
-            Coordinate[] buildingVertices = buildingPolygon.getCoordinates();
-            for (int i = 0; i < buildingVertices.length - 1; i++ ) { //for each until the one before last
-                Coordinate vertexFrom =  buildingVertices[i];
-                Coordinate vertexTo = buildingVertices[i+1];
-                createWall(vertexFrom, vertexTo, null);
-            }
-            System.out.println();
-
-            // features.add((SimpleFeature)feature); //uncomment if write shp to file
-
-            System.out.println("-------------------------------------------");
-        }
-        iterator.close();
-
-//            writeShpFile( oldFeatureSource,  features, oldFeatureCollection);
-
-        System.out.println("Konec racunanja.");
-    }
+//
+////                int result = JniLibraryHelpers.createTempLaz(
+////                        boundingBox.getMinX()-boundingBoxFactor,
+////                        boundingBox.getMinY()-boundingBoxFactor,
+////                        boundingBox.getMaxX()+boundingBoxFactor,
+////                        boundingBox.getMaxY()+boundingBoxFactor
+////                );
+//
+//
+////                GeometryAttribute sourceGeometry = feature.getDefaultGeometryProperty();
+////                System.out.println(feature.getType().getName().toString());
+////                System.out.println(feature.getIdentifier().getID());
+////                System.out.println(feature.getName());
+////                System.out.println(feature.getName());
+////                System.out.println(sourceGeometry.getValue());
+////                System.out.println(feature.getProperty("VISINA"));
+////                for (PropertyDescriptor a : feature.getType().getDescriptors()) {
+////                    System.out.println(a.getName());
+////                    System.out.println(a.getType());
+////                    System.out.println(a.getUserData());
+////                    System.out.println(feature.getName());
+////
+////                }
+////                System.out.println(feature.getType().getName().toString());
+////                System.out.println(feature.getBounds().getMaxY());
+////
+//            //System.out.println(feature.getDefaultGeometryProperty().getDescriptor().getCoordinateReferenceSystem());
+//            //System.out.println(feature.getDefaultGeometryProperty().getValue());
+////                System.out.println(feature.getDefaultGeometryProperty().getBounds());
+////                System.out.println(feature.getBounds());
+////                System.out.println(feature.getType());
+////                System.out.println(geom.getName());
+////                System.out.println(geom.getType().getDescription());
+////                System.out.println(geom.getUserData());
+////                System.out.println(geom.getDescriptor());
+//
+//            System.out.println("Stavba"+index);
+//            MultiPolygon buildingPolygon = (MultiPolygon) geom.getValue();
+//            Coordinate[] buildingVertices = buildingPolygon.getCoordinates();
+//            for (int i = 0; i < buildingVertices.length - 1; i++ ) { //for each until the one before last
+//                Coordinate vertexFrom =  buildingVertices[i];
+//                Coordinate vertexTo = buildingVertices[i+1];
+//                createWall(vertexFrom, vertexTo, null);
+//            }
+//            System.out.println();
+//
+//            // features.add((SimpleFeature)feature); //uncomment if write shp to file
+//
+//            System.out.println("-------------------------------------------");
+//        }
+//        iterator.close();
+//
+////            writeShpFile( oldFeatureSource,  features, oldFeatureCollection);
+//
+//        System.out.println("Konec racunanja.");
+//    }
 
     //returns the Coordinate that lies on a line between "start" and "end" and is a "distance" away from start
     public static Coordinate getNextCoordinate(Coordinate start, Coordinate end, double distance) {

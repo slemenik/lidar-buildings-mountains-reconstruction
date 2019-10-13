@@ -1,6 +1,5 @@
 package com.slemenik.lidar.reconstruction.mountains;
 
-import com.slemenik.lidar.reconstruction.main.HelperClass;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
@@ -106,8 +105,8 @@ public class InterpolationController {
         BIQUADRATIC,
         BIQUADRATIC_NEAREST,
         BICUBIC,
-        SPLINE,
-        SPLINE_FIX
+        SPLINE_OLD,
+        SPLINE //former SPLINE_FIX
 //        NEAREST_N_INCREMENT
     }
 
@@ -135,11 +134,11 @@ public class InterpolationController {
                 return getBiQuadraticThirdDim(thirdDimInfo, indexX, indexY, false);
             case BICUBIC:
                 return getBiCubicThirdDim(thirdDimInfo, indexX, indexY);
-            case SPLINE:
+            case SPLINE_OLD:
                 return getSplineThirdDim(thirdDimInfo, indexX, indexY);
 //            case NEAREST_N_INCREMENT:
 //                return getNearestThirdDim(thirdDimInfo, indexX, indexY, false, 1);
-            case SPLINE_FIX:
+            case SPLINE:
                 return getBiCubicThirdDim(thirdDimInfo,indexX,indexY,null);
             default:
                 System.out.println("wrong interpolation param");
