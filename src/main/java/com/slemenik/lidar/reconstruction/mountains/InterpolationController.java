@@ -101,10 +101,10 @@ public class InterpolationController {
 //        CONSTANT,
 //        OWN_VALUE,
         AVERAGE_24N,
-        BILINEAR,
-        BIQUADRATIC,
-        BIQUADRATIC_NEAREST,
-        BICUBIC,
+        LINEAR,
+        QUADRATIC,
+        QUADRATIC_NEAREST,
+        CUBIC,
         SPLINE_OLD,
         SPLINE //former SPLINE_FIX
 //        NEAREST_N_INCREMENT
@@ -126,13 +126,13 @@ public class InterpolationController {
 //                return 1;
 //            case OWN_VALUE:
 //                return thirdDimInfo[indexX][indexY]; //only when point we point to write alredy existed
-            case BILINEAR:
+            case LINEAR:
                 return getBiLinearThirdDim(thirdDimInfo, indexX, indexY);
-            case BIQUADRATIC_NEAREST:
+            case QUADRATIC_NEAREST:
                 return getBiQuadraticThirdDim(thirdDimInfo, indexX, indexY, true);
-            case BIQUADRATIC:
+            case QUADRATIC:
                 return getBiQuadraticThirdDim(thirdDimInfo, indexX, indexY, false);
-            case BICUBIC:
+            case CUBIC:
                 return getBiCubicThirdDim(thirdDimInfo, indexX, indexY);
             case SPLINE_OLD:
                 return getSplineThirdDim(thirdDimInfo, indexX, indexY);

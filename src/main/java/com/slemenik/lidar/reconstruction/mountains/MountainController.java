@@ -6,13 +6,13 @@ import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 import com.slemenik.lidar.reconstruction.main.DTO;
 import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.main.Main;
+import com.slemenik.lidar.reconstruction.main.TimeKeeper;
 import delaunay_triangulation.Delaunay_Triangulation;
 import delaunay_triangulation.Point_dt;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.locationtech.jts.geom.Coordinate;
 
 import javax.media.j3d.Transform3D;
-import javax.vecmath.AxisAngle4d;
 import javax.vecmath.GMatrix;
 import javax.vecmath.GVector;
 import javax.vecmath.Matrix3d;
@@ -22,16 +22,15 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 public class MountainController {
 
@@ -111,7 +110,7 @@ public class MountainController {
 
         System.out.println("Points from default angles added. Now we add points based on DMR.");
         Point_dt[] dmrPointList = getDmrFromFile(dmrFileName, boundsX);
-        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(dmrPointList),  Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "_dmr_"+tempCount);
+//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(dmrPointList),  Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "_dmr_"+tempCount);
         HelperClass.printLine(" ", "Start triangulation");
         Delaunay_Triangulation dt = new Delaunay_Triangulation(dmrPointList);
         HelperClass.printLine(" ", "End triangulation");
@@ -156,6 +155,7 @@ public class MountainController {
     }
 
     private List<Point3d> getPoints2WriteFromNormalAngle(Vector3D normal) {
+        TimeKeeper.projectionStartTime();
         List<Point3d> points2write = new ArrayList<>();
         //-46.30999999997357, 0.010000000009313226, 0.010000000009313226
         calculateRotationTransformation(normal.getX(), normal.getY(), normal.getZ());
@@ -171,7 +171,9 @@ public class MountainController {
             newPoints = null;//garbage collector optimization?
 //            if (tempCount2 % 10 == 0) {
                 System.out.println("So far we have "+points2write.size()+" new points from " + (tempCount2+1)+" different angles");
-//                JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "-"+Main.INTERPOLATION +"-FinResultKota-"+normal+"-"+tempCount2);
+                if (debug) {
+                    JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "-" +"-FinResultKota-"+normal+"-"+tempCount2);
+                }
 //            }
             tempCount2++;
         }
@@ -279,6 +281,7 @@ public class MountainController {
 
                     }
                 }
+                TimeKeeper.projectionStartTime(); //ponovno naredimo saj se bo v zanki potem kasenje ponovno klical projectionEndTime()
                 addedUntransformedPointsList.addAll(missingPoints);
 
                 //add new points of current segment to treeSet, treat them as other points

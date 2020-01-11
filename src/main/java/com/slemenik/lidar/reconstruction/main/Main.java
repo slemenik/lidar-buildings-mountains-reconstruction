@@ -1,13 +1,11 @@
 package com.slemenik.lidar.reconstruction.main;
 
-import com.slemenik.lidar.reconstruction.buildings.ColorController;
-import com.slemenik.lidar.reconstruction.buildings.ShpController;
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
+import java.sql.Time;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import com.slemenik.lidar.reconstruction.buildings.BuildingController;
@@ -15,28 +13,25 @@ import com.slemenik.lidar.reconstruction.mountains.EvenFieldController;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 
 import com.slemenik.lidar.reconstruction.mountains.MountainController;
-import com.slemenik.lidar.reconstruction.mountains.triangulation.Triangulation;
-import delaunay_triangulation.Delaunay_Triangulation;
-import delaunay_triangulation.Point_dt;
-
-
-import javax.vecmath.Point3d;
 
 
 public class Main {
 
     public static final String DATA_FOLDER = ".";
 
+    public static String LAS_2_LAS_FILE_NAME = "las2las.exe";
     private static boolean CALCULATE_BUILDINGS = true;
     private static boolean CALCULATE_MOUNTAINS = true;
 
-    public static final String DLL_FILE_NAME = "C:/Users/Matej/source/repos/Project2/x64/Debug/Project2.dll";
-    public static final String INPUT_FILE_NAME = DATA_FOLDER + "GK_431_136_bled_grad";//"GK_431_136_bled_grad";//"GK_410_137_triglav_okrnjen";//"GK_458_109";//"410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
-    public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out"; //todo dodaj nazaj .laz
-    public static final String TEMP_FILE_NAME = DATA_FOLDER + "temp";
-    public static final String DMR_FILE_NAME = INPUT_FILE_NAME.substring(0, DATA_FOLDER.length() + 10) + ".asc";//DATA_FOLDER + "GK1_458_109.asc";//"GK1_410_137.asc";
-    public static final String SHP_FILE_NAME = DATA_FOLDER + "stavbe/BU_STAVBE_P.shp";
-    private static final double MAX_POINT_NUMBER_IN_MEMORY_MILLION = 5; // največje število točk originalne datoteke, ki ga še preberemo v pomnilnik
+    public static  String DLL_FILE_NAME = "C:/Users/Matej/source/repos/Project2/x64/Debug/Project2.dll";
+    public static String INPUT_FILE_NAME = DATA_FOLDER + "GK_431_136_bled_grad";//"original+odsek";//"GK_431_136_bled_grad";//"GK_410_137_triglav_okrnjen";//"GK_458_109";//"410_137_triglav";//"original+odsek";//"triglav okrnjen.laz";
+    public static String OUTPUT_FILE_NAME = DATA_FOLDER + "out"; //todo dodaj nazaj .laz, tud na inputu, če spreminjaš to, potem moraš pogledat povsod kjer vpliva, tudi na DMR_INPUT_FILE
+    public static String TEMP_FILE_NAME = DATA_FOLDER + "temp";
+    public static String DMR_FILE_NAME = DATA_FOLDER + "GK_410_137.asc";//"GK1_410_137.asc";
+//    public static final String DMR_FILE_NAME = INPUT_FILE_NAME + ".asc";//DATA_FOLDER + "GK1_458_109.asc";//"GK1_410_137.asc";
+//    public static final String DMR_FILE_NAME = INPUT_FILE_NAME.substring(0, DATA_FOLDER.length() + 10) + ".asc";//DATA_FOLDER + "GK1_458_109.asc";//"GK1_410_137.asc";
+    public static  String SHP_FILE_NAME = DATA_FOLDER + "stavbe/BU_STAVBE_P.shp";
+    private static final double MAX_POINT_NUMBER_IN_MEMORY_MILLION = 1; // največje število točk originalne datoteke, ki ga še preberemo v pomnilnik
                                                                       // če je točk več, se razdeli v več ločenih branj
     private static final int SEGMENT_LENGTH_X_COORDINATE_LAS_FILE = 5; // the difference between min and max X coordinate,
                                                                         // used for limiting read points so we read them
@@ -44,13 +39,13 @@ public class Main {
                                                                         // has a range of 1000, ex. 410000-411000
                                                                         //~15mio points , range of 1 ~15k points
 
-    public static final double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
-    public static final double CREATED_POINTS_SPACING = 0.6;//2.0;//0.2;
-    public static final boolean CONSIDER_EXISTING_POINTS = false; //rešetke
+    public static double DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = 0.8; //manjše je bolj natančno za detajle, ne prekrije celega
+    public static double CREATED_POINTS_SPACING = 0.6;//2.0;//0.2;
+    public static boolean CONSIDER_EXISTING_POINTS = false; //rešetke
     public static final double BOUNDING_BOX_FACTOR = 1.0;// za koliko povečamo mejo boundingboxa temp laz file-a
     public static final boolean CREATE_TEMP_FILE = true;
     //public static final double[] TEMP_BOUNDS = new double[]{462264, 100575, 462411, 100701};
-    private static final Integer[] READ_CLASSIFICATION = new Integer[]{0,1,2,3,4,5,6,7,8};
+    public static Integer[] READ_CLASSIFICATION = new Integer[]{0,1,2,3,4,5,6,7,8};
     public enum Classification {
         NEVER_CLASSIFIED,   //0 - ustvarjana, vendar nikoli klasificirane točke//črna
         UNASSIGNED,         //1- neklasificirane točke //bela
@@ -72,21 +67,22 @@ public class Main {
         }
     }
 
-    public static final double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 30;
-    public static final double MOUNTAINS_NUMBER_OF_SEGMENTS = 5;
+    public static double MOUNTAINS_ANGLE_TOLERANCE_DEGREES = 30;
+    public static double MOUNTAINS_NUMBER_OF_SEGMENTS = 5;
 
-    public static final String INTERPOLATION_STRING = Interpolation.SPLINE.name();
+    public static String INTERPOLATION_STRING = Interpolation.SPLINE.name();
 //    public static Interpolation INTERPOLATION = Interpolation.valueOf(INTERPOLATION_STRING);//Interpolation.AVERAGE_8N;
 
     public static void main(String[] args) {
         long startTime = System.nanoTime();
         System.out.println("start main");
+        setArgs(args);
 
         long heapMaxSize = Runtime.getRuntime().maxMemory();
         System.out.println("heapmaxsize "+HelperClass.formatHeapSize(heapMaxSize));
 
         tempTestFunction();
-        double[][] pointListDoubleArray = new double[][]{};
+//        double[][] pointListDoubleArray = new double[][]{};
 //        double[][] pointListDoubleArray = mainTest(args);
 
 //        if (pointListDoubleArray.length > 0) {
@@ -115,6 +111,84 @@ public class Main {
         System.out.println("end");
     }
 
+    private static void setArgs(String[] args) {
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "-in":
+                    Main.INPUT_FILE_NAME = args[i+1];
+                    i++;
+                    break;
+                case "-dll":
+                    Main.DLL_FILE_NAME = args[i+1];
+                    i++;
+                    break;
+                case "-out":
+                    Main.OUTPUT_FILE_NAME = args[i+1];
+                    i++;
+                    break;
+                case "-density":
+                    Main.CREATED_POINTS_SPACING = Double.parseDouble(args[i+1]);
+                    i++;
+                    break;
+                case "-buildings":
+                    Main.CALCULATE_BUILDINGS = Boolean.parseBoolean(args[i+1]);
+                    i++;
+                    break;
+                case "-mountains":
+                    Main.CALCULATE_MOUNTAINS = Boolean.parseBoolean(args[i+1]);
+                    i++;
+                    break;
+                case "-shp":
+                    Main.SHP_FILE_NAME = args[i+1];
+                    i++;
+                    break;
+                case "-las2las":
+                    Main.LAS_2_LAS_FILE_NAME = args[i+1];
+                    i++;
+                    break;
+                case "-temp_file":
+                    Main.TEMP_FILE_NAME = args[i+1];
+                    i++;
+                    break;
+                case "-radius":
+                    Main.DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD = Double.parseDouble(args[i+1]);
+                    i++;
+                    break;
+                case "-natural":
+                    Main.CONSIDER_EXISTING_POINTS = Boolean.parseBoolean(args[i+1]);
+                    i++;
+                    break;
+                case "-dmr":
+                    Main.DMR_FILE_NAME = args[i+1];
+                    i++;
+                    break;
+                case "-classifications":
+                    List<Integer> classifications = new ArrayList<>();
+                    for (int j = i+1; !args[j].contains("-"); j++) {
+                        classifications.add(Integer.parseInt(args[j]));
+                        i = j;
+                        if (args.length == i+1) { //prevent indexOutOfbounds in next step
+                            break;
+                        }
+                    }
+                    Main.READ_CLASSIFICATION = classifications.toArray(Integer[]::new);
+                    break;
+                case "-angle_similarity":
+                    Main.MOUNTAINS_ANGLE_TOLERANCE_DEGREES = Double.parseDouble(args[i+1]);
+                    i++;
+                    break;
+                case "-segments":
+                    Main.MOUNTAINS_NUMBER_OF_SEGMENTS = Double.parseDouble(args[i+1]);
+                    i++;
+                    break;
+                case "-interpolation":
+                    Main.INTERPOLATION_STRING = args[i+1];
+                    i++;
+                    break;
+            }
+        }
+    }
+
     public static void pipelineStart(){
         HelperClass.printLine(" ", "Pipeline start.");
         double[] header = JniLibraryHelpers.getHeaderInfo(INPUT_FILE_NAME);
@@ -136,12 +210,17 @@ public class Main {
             headerDTO.maxX = Double.min(currMinX + segmentLength, absMaxX); //if currMinX + segmentLength is bigger than absMaxX, use absMaxX
 
             if (CALCULATE_BUILDINGS) {
+                TimeKeeper.buildingsStartTime();
                 BuildingController bc = new BuildingController(headerDTO);
                 double[][] newBuildingPoints = HelperClass.toResultDoubleArray(bc.getNewPoints(), Classification.BUILDING);
+                TimeKeeper.buildingsWriteStartTime();
                 JniLibraryHelpers.writePointListWithClassification(newBuildingPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME+ "-building"); //temp
+                TimeKeeper.buildingsWriteEndTime();
+                TimeKeeper.buildingsEndTime();
             }
 
             if (CALCULATE_MOUNTAINS) {
+                TimeKeeper.mountainsStartTime();
                 String[] params = getJNIparams(currMinX, headerDTO.maxX);
                 double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, params);
 //            double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, currMinX, headerDTO.maxX);
@@ -150,13 +229,17 @@ public class Main {
                 HelperClass.memory();
                 MountainController mc = new MountainController(headerDTO, oldPoints);
                 double[][] newMountainsPoints = HelperClass.toResultDoubleArray(mc.getNewPoints(), Classification.GROUND);
+                TimeKeeper.mountainsWriteStartTime();
                 JniLibraryHelpers.writePointListWithClassification(newMountainsPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-mountain"); //temp
+                TimeKeeper.mountainsWriteEndTime();
+                TimeKeeper.mountainsEndTime();
             }
 
             //newPoints = ArrayUtils.addAll(newBuildingPoints, newMountainsPoints);
 
             currMinX += segmentLength;
         }
+        TimeKeeper.report();
         JniLibraryHelpers.writePointListWithClassification(newPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-united");
         HelperClass.printLine("", "End pipeline.");
     }
@@ -222,8 +305,6 @@ public class Main {
 //
 //    }
 
-
-
     public static String[] getJNIparams(double minX, double maxX) {
         String[] result = new String[READ_CLASSIFICATION.length + 5];
         result[0] = "dummy";
@@ -235,6 +316,7 @@ public class Main {
             int i = 5;
             for (Integer classification : READ_CLASSIFICATION) {
                 result[i] = String.valueOf(classification);
+                i++;
             }
         }
         return result;
@@ -295,14 +377,14 @@ public class Main {
 //        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c7), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 7);
 //        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(c8), INPUT_FILE_NAME, OUTPUT_FILE_NAME + 8);
 
-        String params[] = new String[]{"dummy", "-keep_x", "410500", "410600", "-keep_class", "0", "1", "2", "3", "4" };
+//        String params[] = new String[]{"dummy", "-keep_x", "410500", "410600", "-keep_class", "0", "1", "2", "3", "4" };
 //        double[][] t = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, params);
 //        JniLibraryHelpers.writePointListWithClassification(t, INPUT_FILE_NAME, OUTPUT_FILE_NAME + 8);
 
-        int i = 1;
+//        int i = 1;
 //        for (Interpolation interpolation: Interpolation.values()) {
 //            if (i++ <= 4) continue; //napiši kolik ohočše da se jih spusti
-            OUTPUT_FILE_NAME = DATA_FOLDER + "out-" + Interpolation.BICUBIC;
+//            OUTPUT_FILE_NAME = DATA_FOLDER + "out-" + Interpolation.CUBIC;
             pipelineStart();
 //        }
 

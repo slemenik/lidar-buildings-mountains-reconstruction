@@ -67,43 +67,50 @@ public class BuildingController {
         FeatureIterator iterator = ShpController.getFeatures(bounds, shpFileName);
         List<SimpleFeature> features = new ArrayList<>();
         int index = 0;
-//        try {
-        while (iterator.hasNext()) {
+        try {
+            while (iterator.hasNext()) {
 
-            Feature feature = iterator.next();
-            System.out.print("create temp laz file... ");
-            BoundingBox boundingBox = feature.getBounds();
-            String CMDparams = String.format(Locale.ROOT,
-                    Main.LAS_2_LAS_FILE_NAME + " -i %s -o %s -keep_xy %f %f %f %f",
-                    inputLazFileName + ".laz", tempLazFileName + ".laz",
-                    boundingBox.getMinX()- boundingBoxFactor,
-                    boundingBox.getMinY()- boundingBoxFactor,
-                    boundingBox.getMaxX()+ boundingBoxFactor,
-                    boundingBox.getMaxY()+ boundingBoxFactor
-            );
-            try {
-                Runtime.getRuntime().exec(CMDparams).waitFor();
-            } catch (IOException | InterruptedException e) {
-                System.out.println("Error creating temp .laz file: " + e + ". Check if las2las.exe exists in specifed folder: " + new File(Main.LAS_2_LAS_FILE_NAME).getAbsolutePath());
-                System.out.print("Reading from input file...");
-                tempLazFileName = inputLazFileName;
-            }
-            System.out.println("Done");
-            Property geom = feature.getProperty(feature.getDefaultGeometryProperty().getName());
-            System.out.println("Stavba"+index++);
-            MultiPolygon buildingPolygon = (MultiPolygon) geom.getValue();
-            Coordinate[] buildingVertices = buildingPolygon.getCoordinates();
-            for (int i = 0; i < buildingVertices.length - 1; i++ ) { //for each until the one before last
-                Coordinate vertexFrom =  buildingVertices[i];
-                Coordinate vertexTo = buildingVertices[i+1];
-                createWall(vertexFrom, vertexTo, null);
-            }
-             features.add((SimpleFeature)feature); //uncomment if write shp to file
+                Feature feature = iterator.next();
+                System.out.print("create temp laz file... ");
+                BoundingBox boundingBox = feature.getBounds();
+                String CMDparams = String.format(Locale.ROOT,
+                        Main.LAS_2_LAS_FILE_NAME + " -i %s -o %s -keep_xy %f %f %f %f",
+                        inputLazFileName + ".laz", tempLazFileName + ".laz",
+                        boundingBox.getMinX() - boundingBoxFactor,
+                        boundingBox.getMinY() - boundingBoxFactor,
+                        boundingBox.getMaxX() + boundingBoxFactor,
+                        boundingBox.getMaxY() + boundingBoxFactor
+                );
+                try {
+                    Runtime.getRuntime().exec(CMDparams).waitFor();
+                } catch (IOException | InterruptedException e) {
+                    System.out.println("Error creating temp .laz file: " + e + ". Check if las2las.exe exists in specifed folder: " + new File(Main.LAS_2_LAS_FILE_NAME).getAbsolutePath());
+                    System.out.print("Reading from input file...");
+                    tempLazFileName = inputLazFileName;
+                }
+                System.out.println("Done");
+                Property geom = feature.getProperty(feature.getDefaultGeometryProperty().getName());
+                System.out.println("Stavba" + index++);
+                MultiPolygon buildingPolygon = (MultiPolygon) geom.getValue();
+                Coordinate[] buildingVertices = buildingPolygon.getCoordinates();
+                for (int i = 0; i < buildingVertices.length - 1; i++) { //for each until the one before last
+                    Coordinate vertexFrom = buildingVertices[i];
+                    Coordinate vertexTo = buildingVertices[i + 1];
+                    createWall(vertexFrom, vertexTo, null);
+                }
+                features.add((SimpleFeature) feature); //uncomment if write shp to file
 
-            System.out.println();
-            System.out.println("-------------------------------------------");
+                System.out.println();
+                System.out.println("-------------------------------------------");
+            }
+        } catch (Exception e){
+            HelperClass.printLine(" ", e);
+        } finally {
+            iterator.close();
+            ShpController.dataStore.dispose();
+
         }
-        iterator.close();
+
         System.out.println("END BuildingController.getNewPoints()");
 //                    ShpController.writeShpFile( oldFeatureSourcetemp,  features, oldFeatureCollectiontemp, "tempppp.shp");
 

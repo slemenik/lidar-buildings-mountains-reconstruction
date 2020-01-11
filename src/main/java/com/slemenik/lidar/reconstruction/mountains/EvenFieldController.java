@@ -1,5 +1,6 @@
 package com.slemenik.lidar.reconstruction.mountains;
 
+import java.sql.Time;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -9,6 +10,7 @@ import java.util.stream.Stream;
 
 import com.slemenik.lidar.reconstruction.main.HelperClass;
 import com.slemenik.lidar.reconstruction.main.Main;
+import com.slemenik.lidar.reconstruction.main.TimeKeeper;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -163,11 +165,13 @@ public class EvenFieldController {
             return new ArrayList<>();
         }
         boolean[][] fieldAllPoints = getBooleanPointField(pointList); //boolean field of projection where value==true if point exists
+        TimeKeeper.projectionEndTime();
         //HelperClass.createFieldPointFile(fieldAllPoints, minX, minY, pointsSpace);
         if (MountainController.debug)
             HelperClass.createFieldPointFile(fieldAllPoints);
+        TimeKeeper.borderStartTime();
         boolean[][] boundaryField = getBoundaryField(fieldAllPoints); //boolean field, subset of fieldAllPoints, only boundary points are true
-
+        TimeKeeper.borderEndTime();
         //HelperClass.createFieldPointFile(boundaryField, minX, minY, pointsSpace);
         if (MountainController.debug)
             HelperClass.createFieldPointFile(boundaryField);
@@ -178,6 +182,7 @@ public class EvenFieldController {
 
         List<int[]> pointsToInsert = new ArrayList<>(); //list of indices, index x and y of fieldAllPoints represent new point to insert
 
+        TimeKeeper.innerHolesStartTime();
        for (int i = 0; i< fieldAllPoints.length; i++) {
            boolean insideBorder = false;
            List<int[]> pointsToInsertPerRow = new ArrayList<>();
@@ -197,6 +202,7 @@ public class EvenFieldController {
                }
            } //end for j
        } // end for i
+        TimeKeeper.innerHolesEndTime();
 //        if (pointList.size() == 2264018) { //temp
 //        HelperClass.createFieldPointFile(pointsToInsert, minX, minY, pointsSpace);
 //            HelperClass.createFieldPointFile(pointsToInsert);
@@ -228,6 +234,7 @@ public class EvenFieldController {
 
     public List<Point3d> getPointsFromFieldList(List<int[]> fieldsWithPointList) {
 //        System.out.println("method getPointsFromFieldList()");
+        TimeKeeper.interpolationStartTime();
         List<Point3d> result = new ArrayList<>();
         int i = 0;
         int requiredSize = fieldsWithPointList.size();
@@ -254,7 +261,7 @@ public class EvenFieldController {
 //                fieldsWithPointList.remove(i);
 //                i--; //we subtract it and moment later we add it, so we get next point correctly
             } else {
-                if (!ArrayUtils.contains(new Interpolation[]{Interpolation.BIQUADRATIC_NEAREST, Interpolation.SPLINE_OLD}, interpolation)) { //todo explore why
+                if (!ArrayUtils.contains(new Interpolation[]{Interpolation.QUADRATIC_NEAREST, Interpolation.SPLINE_OLD}, interpolation)) { //todo explore why
                     thirdDimInfo[indexX][indexY] = newTemp; // sprotno popravljanje oz dopolnjevanje tretje dimenzije
                 }
                 result.add(new Point3d (newX, newY, newTemp));//temp, because x = 0, y = x, z = y
@@ -265,6 +272,7 @@ public class EvenFieldController {
         if (result.size() == 22656) {
             int temp = 24;
         }
+        TimeKeeper.interpolationEndTime();
         return result;
     }
 

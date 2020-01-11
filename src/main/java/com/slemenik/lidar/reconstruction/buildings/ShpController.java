@@ -30,6 +30,8 @@ public class ShpController {
 //    static FeatureCollection oldFeatureCollectiontemp;
 //    static FeatureSource oldFeatureSourcetemp;
 
+    public static DataStore dataStore;
+
     public static FeatureSource getFeatureSource(String shpFileName) {
         File file = new File(shpFileName);
         FeatureSource featureSource = null;
@@ -37,7 +39,7 @@ public class ShpController {
             Map<String, String> connect = new HashMap();
             connect.put("url", file.toURI().toString());
 
-            DataStore dataStore = DataStoreFinder.getDataStore(connect);
+            dataStore = DataStoreFinder.getDataStore(connect);
             String[] typeNames = dataStore.getTypeNames();
             String typeName = typeNames[0];
 
@@ -83,7 +85,7 @@ public class ShpController {
 
 //            List<SimpleFeature> features = new ArrayList<>(); //uncomment if write shp
 //            System.out.println(collection.size());
-
+//            FeatureIterator iterator = oldFeatureCollection.features();
             return oldFeatureCollection.features();
 
 
