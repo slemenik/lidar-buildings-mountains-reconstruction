@@ -264,7 +264,12 @@ public class MountainController {
             if (point.z <= currentMaxZDepth) { //reached current threshold, find missing points for current segment of points
                 pointsCurrent = rotatedPointsTreeSet.headSet(point);
 
-                List<Point3d> missingPoints = getMissingPointsFromExisting(pointsCurrent, transMinX, transMaxX, transMinY, transMaxY); //todo mogoče namesto new ArrayList daš kar direkt Set in nato popraviš ostalo ustrezno
+                List<Point3d> missingPoints;
+                if (pointsCurrent.size() < 6) {
+                    missingPoints = new ArrayList<>(); //if point number is so small, it makes no sense to calculate anything
+                } else {
+                    missingPoints = getMissingPointsFromExisting(pointsCurrent, transMinX, transMaxX, transMinY, transMaxY); //todo mogoče namesto new ArrayList daš kar direkt Set in nato popraviš ostalo ustrezno
+                }
 
                 if (debug) {
                     String outputfileTemp = Main.OUTPUT_FILE_NAME + ".segmentTo" + currentMaxZDepth;

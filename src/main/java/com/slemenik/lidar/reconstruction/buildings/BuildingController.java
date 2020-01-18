@@ -71,7 +71,7 @@ public class BuildingController {
             while (iterator.hasNext()) {
 
                 Feature feature = iterator.next();
-                System.out.print("create temp laz file... ");
+                HelperClass.printLine(" ","create temp laz file... ");
                 BoundingBox boundingBox = feature.getBounds();
                 String CMDparams = String.format(Locale.ROOT,
                         Main.LAS_2_LAS_FILE_NAME + " -i %s -o %s -keep_xy %f %f %f %f",
@@ -111,7 +111,7 @@ public class BuildingController {
 
         }
 
-        System.out.println("END BuildingController.getNewPoints()");
+        System.out.println("END BuildingController.getNewPoints(), calculated " + index + "buildings");
 //                    ShpController.writeShpFile( oldFeatureSourcetemp,  features, oldFeatureCollectiontemp, "tempppp.shp");
 
         return this.points2Insert;

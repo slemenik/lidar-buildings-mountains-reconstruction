@@ -99,25 +99,24 @@ public class TimeKeeper {
         System.out.println("");
         System.out.println("buildingsTime: " + reportTime(buildingsTime));
         System.out.println("mountainsTime: " + reportTime(mountainsTime));
-
+         System.out.println("--");
         System.out.println("buildingsWriteTime: " + reportTime(buildingsWriteTime));
-
+         System.out.println("--");
         System.out.println("projectionTime: " + reportTime(projectionTime));
         System.out.println("borderTime: " + reportTime(borderTime));
         System.out.println("innerHolesTime: " + reportTime(innerHolesTime));
         System.out.println("interpolationTime: " + reportTime(interpolationTime));
         System.out.println("mountainsWriteTime: " + reportTime(mountainsWriteTime));
-
+         System.out.println("--");
          System.out.println("INPUT_FILE_NAME: " + Main.INPUT_FILE_NAME);
          System.out.println("CREATED_POINTS_SPACING, density: " + Main.CREATED_POINTS_SPACING);
          System.out.println("DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD, radius: " + Main.DISTANCE_FROM_ORIGINAL_POINT_THRESHOLD);
          System.out.println("CONSIDER_EXISTING_POINTS, natural: " + Main.CONSIDER_EXISTING_POINTS);
+         System.out.println("--");
          System.out.println("READ_CLASSIFICATION, classifications: " + Arrays.asList(Main.READ_CLASSIFICATION));
          System.out.println("MOUNTAINS_ANGLE_TOLERANCE_DEGREES, similarity: " + Main.MOUNTAINS_ANGLE_TOLERANCE_DEGREES);
          System.out.println("MOUNTAINS_NUMBER_OF_SEGMENTS, segments: " + Main.MOUNTAINS_NUMBER_OF_SEGMENTS);
          System.out.println("INTERPOLATION_STRING, interpolation: " + Main.INTERPOLATION_STRING);
-
-
          System.out.println("--------------------------------------------------------");
     }
 

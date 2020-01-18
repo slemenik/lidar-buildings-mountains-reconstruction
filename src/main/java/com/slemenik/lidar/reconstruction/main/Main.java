@@ -2,6 +2,8 @@ package com.slemenik.lidar.reconstruction.main;
 
 import com.slemenik.lidar.reconstruction.jni.JniLibraryHelpers;
 
+import java.awt.*;
+import java.sql.Array;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,6 +15,9 @@ import com.slemenik.lidar.reconstruction.mountains.EvenFieldController;
 import com.slemenik.lidar.reconstruction.mountains.InterpolationController.Interpolation;
 
 import com.slemenik.lidar.reconstruction.mountains.MountainController;
+import org.apache.commons.lang3.ArrayUtils;
+
+import javax.vecmath.Point3d;
 
 
 public class Main {
@@ -194,7 +199,18 @@ public class Main {
         double[] header = JniLibraryHelpers.getHeaderInfo(INPUT_FILE_NAME);
         DTO.LasHeader headerDTO = new DTO.LasHeader(header);
 
-        double[][] newPoints = new double[0][];
+        double[][] newBuildingPoints = new double[0][];
+        double[][] newMountainsPoints = new double[0][];
+
+        if (CALCULATE_BUILDINGS) {
+            TimeKeeper.buildingsStartTime();
+            BuildingController bc = new BuildingController(headerDTO);
+            newBuildingPoints = HelperClass.toResultDoubleArray(bc.getNewPoints(), Classification.BUILDING);
+            TimeKeeper.buildingsWriteStartTime();
+            JniLibraryHelpers.writePointListWithClassification(newBuildingPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME+ "-building"); //temp
+            TimeKeeper.buildingsWriteEndTime();
+            TimeKeeper.buildingsEndTime();
+        }
 
         double segmentLength =  (headerDTO.maxX-headerDTO.minX)/(headerDTO.pointRecordsNumber/(MAX_POINT_NUMBER_IN_MEMORY_MILLION * 1000000));
 //        double segmentLength =  MAX_POINT_NUMBER_IN_MEMORY_MILLION * 1000000 / (headerDTO.pointRecordsNumber/1000)//15000;
@@ -202,24 +218,17 @@ public class Main {
         double absMinX = headerDTO.minX;
         HelperClass.printLine(", ", "segmentLength: ", segmentLength, "absMaxX: ", absMaxX, "absMinX:", absMinX);
         double currMinX = absMinX;
-        //split full file to multiple files, read and write one by one
-        while (currMinX < absMaxX) {
+        int fileCount = 1;
 
-            //change current min and max X to that of current reduce-sized point file
-            headerDTO.minX = currMinX;
-            headerDTO.maxX = Double.min(currMinX + segmentLength, absMaxX); //if currMinX + segmentLength is bigger than absMaxX, use absMaxX
+        if (CALCULATE_MOUNTAINS) {
+            List<Point3d> newMountainsPointsList = new ArrayList<>();
+            while (currMinX < absMaxX) {
 
-            if (CALCULATE_BUILDINGS) {
-                TimeKeeper.buildingsStartTime();
-                BuildingController bc = new BuildingController(headerDTO);
-                double[][] newBuildingPoints = HelperClass.toResultDoubleArray(bc.getNewPoints(), Classification.BUILDING);
-                TimeKeeper.buildingsWriteStartTime();
-                JniLibraryHelpers.writePointListWithClassification(newBuildingPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME+ "-building"); //temp
-                TimeKeeper.buildingsWriteEndTime();
-                TimeKeeper.buildingsEndTime();
-            }
+                //change current min and max X to that of current reduce-sized point file
+                headerDTO.minX = currMinX;
+                headerDTO.maxX = Double.min(currMinX + segmentLength, absMaxX); //if currMinX + segmentLength is bigger than absMaxX, use absMaxX
 
-            if (CALCULATE_MOUNTAINS) {
+
                 TimeKeeper.mountainsStartTime();
                 String[] params = getJNIparams(currMinX, headerDTO.maxX);
                 double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, params);
@@ -228,20 +237,26 @@ public class Main {
 
                 HelperClass.memory();
                 MountainController mc = new MountainController(headerDTO, oldPoints);
-                double[][] newMountainsPoints = HelperClass.toResultDoubleArray(mc.getNewPoints(), Classification.GROUND);
-                TimeKeeper.mountainsWriteStartTime();
-                JniLibraryHelpers.writePointListWithClassification(newMountainsPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-mountain"); //temp
-                TimeKeeper.mountainsWriteEndTime();
-                TimeKeeper.mountainsEndTime();
+                newMountainsPointsList.addAll(mc.getNewPoints());
+
+                currMinX += segmentLength;
             }
-
-            //newPoints = ArrayUtils.addAll(newBuildingPoints, newMountainsPoints);
-
-            currMinX += segmentLength;
+            newMountainsPoints = HelperClass.toResultDoubleArray(newMountainsPointsList, Classification.GROUND);
+            TimeKeeper.mountainsWriteStartTime();
+            JniLibraryHelpers.writePointListWithClassification(newMountainsPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-mountain"); //temp
+            TimeKeeper.mountainsWriteEndTime();
+            TimeKeeper.mountainsEndTime();
         }
         TimeKeeper.report();
-        JniLibraryHelpers.writePointListWithClassification(newPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-united");
+
+        if (Main.CALCULATE_MOUNTAINS && Main.CALCULATE_BUILDINGS) {
+            double[][] newPoints = new double[0][];
+            newPoints = ArrayUtils.addAll(newPoints, newBuildingPoints.clone());
+            newPoints = ArrayUtils.addAll(newPoints, newMountainsPoints.clone());
+            JniLibraryHelpers.writePointListWithClassification(newPoints, INPUT_FILE_NAME, OUTPUT_FILE_NAME + "-united");
+        }
         HelperClass.printLine("", "End pipeline.");
+        Toolkit.getDefaultToolkit().beep(); //end program with a beep
     }
 
 //    private static void examplePoint2Index() {
@@ -388,8 +403,7 @@ public class Main {
             pipelineStart();
 //        }
 
-//        examplePoint2Index();
-//        test123();
+
     return;
 
 

@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 public class HelperClass {
 
@@ -58,7 +59,8 @@ public class HelperClass {
         if (list == null || list.isEmpty()){
             return new double[][]{};
         } else if (list.get(0) instanceof double[]) {
-            return (double[][]) list.toArray(new double[][]{});
+            return (double[][]) list.stream().map(doublePoint ->
+                    new double[]{((double[]) doublePoint)[0], ((double[])doublePoint)[1], ((double[])doublePoint)[2], classification.getDoubleValue()}).toArray(double[][]::new);
         } else if (list.get(0) instanceof Point3d) {
             return ((List<Point3d>) list).stream().map(point3d -> new double[]{point3d.x, point3d.y, point3d.z, classification.getDoubleValue()}).toArray(double[][]::new);
         } else if (list.get(0) instanceof int[]) {

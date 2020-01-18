@@ -93,3 +93,4 @@ fabric.properties
 
 ##########################CUSTOM#####################3
 data
+/target/

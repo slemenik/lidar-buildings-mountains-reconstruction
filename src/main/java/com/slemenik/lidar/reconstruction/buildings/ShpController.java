@@ -81,7 +81,7 @@ public class ShpController {
             FeatureCollection oldFeatureCollection = oldFeatureSource.getFeatures(query);
 //            oldFeatureCollectiontemp = oldFeatureCollection;
 //            System.out.println(oldFeatureSource.getFeatures(query).size());
-//            System.out.println(oldFeatureSource.getFeatures().size());
+//            System.out.println("number of features: " + oldFeatureSource.getFeatures().size());
 
 //            List<SimpleFeature> features = new ArrayList<>(); //uncomment if write shp
 //            System.out.println(collection.size());
