@@ -96,36 +96,32 @@ public class MountainController {
             }
         });
 
-        System.out.println("Add points from default angles");
-        //first we add points basaed on a couple of standard angles
-        getDefaultAngles().stream().forEach(normal -> {
-            points2write.addAll(getPoints2WriteFromNormalAngle(normal));
-        });
-//        getPoints2WriteFromNormalAngle(new Vector3D(-1,0,0));
-//         JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(points2write), Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "standard"+tempCount);
-
-//        if (true){
-//            return null;
-//        }
-
-        System.out.println("Points from default angles added. Now we add points based on DMR.");
         Point_dt[] dmrPointList = getDmrFromFile(dmrFileName, boundsX);
-//        JniLibraryHelpers.writePointList(HelperClass.toResultDoubleArray(dmrPointList),  Main.INPUT_FILE_NAME, Main.OUTPUT_FILE_NAME+ "_dmr_"+tempCount);
-        HelperClass.printLine(" ", "Start triangulation");
-        Delaunay_Triangulation dt = new Delaunay_Triangulation(dmrPointList);
-        HelperClass.printLine(" ", "End triangulation");
-
-        //final Integer[] i = {0};
-        dmrPointList = null; //garbage collector optimization
-        dt.trianglesIterator().forEachRemaining(triangleDt -> {
-            if (!triangleDt.isHalfplane()) {
-//                HelperClass.memory();
-                Vector3D normal = getNormalVector(triangleDt.p1(), triangleDt.p2(), triangleDt.p3());
+        if (dmrPointList.length == 0) {
+            HelperClass.printLine(" ","problem reading dmr, no points found, Add points from default angles");
+            //we add points basaed on a couple of standard angles
+            getDefaultAngles().stream().forEach(normal -> {
                 points2write.addAll(getPoints2WriteFromNormalAngle(normal));
-                //System.out.println(i[0]++);
-            }
+            });
+            HelperClass.printLine(" ","Points from default angles added");
+        } else {
+            HelperClass.printLine(" ", "Start triangulation");
+            Delaunay_Triangulation dt = new Delaunay_Triangulation(dmrPointList);
+            HelperClass.printLine(" ", "End triangulation");
 
-        });
+            //final Integer[] i = {0};
+            dmrPointList = null; //garbage collector optimization
+            HelperClass.printLine(" ", " add points based on DMR.");
+            dt.trianglesIterator().forEachRemaining(triangleDt -> {
+                if (!triangleDt.isHalfplane()) {
+//                HelperClass.memory();
+                    Vector3D normal = getNormalVector(triangleDt.p1(), triangleDt.p2(), triangleDt.p3());
+                    points2write.addAll(getPoints2WriteFromNormalAngle(normal));
+                    //System.out.println(i[0]++);
+                }
+
+            });
+        }
         //all, 1998099, actual transofirn , 8523, difference, 1989576, similarAngleToleranceDegrees=10
         HelperClass.printLine(", ","all", tempCount, "actual transofirn ", tempCount2, "difference", tempCount-tempCount2);
 //        dt = null;

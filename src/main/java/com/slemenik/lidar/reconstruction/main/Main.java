@@ -7,6 +7,7 @@ import java.sql.Array;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -222,14 +223,13 @@ public class Main {
 
         if (CALCULATE_MOUNTAINS) {
             List<Point3d> newMountainsPointsList = new ArrayList<>();
+            TimeKeeper.mountainsStartTime();
             while (currMinX < absMaxX) {
 
                 //change current min and max X to that of current reduce-sized point file
                 headerDTO.minX = currMinX;
                 headerDTO.maxX = Double.min(currMinX + segmentLength, absMaxX); //if currMinX + segmentLength is bigger than absMaxX, use absMaxX
 
-
-                TimeKeeper.mountainsStartTime();
                 String[] params = getJNIparams(currMinX, headerDTO.maxX);
                 double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, params);
 //            double[][] oldPoints = JniLibraryHelpers.getPointArray(INPUT_FILE_NAME, currMinX, headerDTO.maxX);
@@ -400,10 +400,11 @@ public class Main {
 //        for (Interpolation interpolation: Interpolation.values()) {
 //            if (i++ <= 4) continue; //napiši kolik ohočše da se jih spusti
 //            OUTPUT_FILE_NAME = DATA_FOLDER + "out-" + Interpolation.CUBIC;
-            pipelineStart();
+//            pipelineStart();
 //        }
-
-
+        TimeKeeper.printToLog("\n\n\n\nnew entry: " + new Date());
+        TimeKeeper.testTimeFunction(4);
+//        TimeKeeper.printToLog("123");
     return;
 
 
