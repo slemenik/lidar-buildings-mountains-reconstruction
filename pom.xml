@@ -50,6 +50,13 @@
             <artifactId>javafx-graphics</artifactId>
             <version>13-ea+8</version>
         </dependency>
+        <dependency>
+            <groupId>com.sample</groupId>
+            <artifactId>sample</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/DT1.2.jar</systemPath>
+        </dependency>
 
 </dependencies>
 
@@ -61,16 +68,17 @@
         </repository>
         <repository>
             <id>osgeo</id>
-            <name>Open Source Geospatial Foundation Repository</name>
-            <url>http://download.osgeo.org/webdav/geotools/</url>
+            <name>OSGeo Release Repository</name>
+            <url>https://repo.osgeo.org/repository/release/</url>
+            <snapshots><enabled>false</enabled></snapshots>
+            <releases><enabled>true</enabled></releases>
         </repository>
         <repository>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>boundless</id>
-            <name>Boundless Maven Repository</name>
-            <url>http://repo.boundlessgeo.com/main</url>
+            <id>osgeo-snapshot</id>
+            <name>OSGeo Snapshot Repository</name>
+            <url>https://repo.osgeo.org/repository/snapshot/</url>
+            <snapshots><enabled>true</enabled></snapshots>
+            <releases><enabled>false</enabled></releases>
         </repository>
     </repositories>
 
